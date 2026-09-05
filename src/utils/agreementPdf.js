@@ -51,9 +51,14 @@ function generateAgreementPdf({ loan, customer, company }) {
   }
   doc.fontSize(17).fillColor('#0f172a').font('Helvetica-Bold')
     .text(company.name || 'VRV DHAN VAIBHAV FOUNDATION', headerX, doc.y, { width: pageWidth - (headerX - doc.page.margins.left) });
-  doc.fontSize(9).fillColor('#475569').font('Helvetica')
-    .text([company.address, [company.city, company.state, company.pincode].filter(Boolean).join(', ')].filter(Boolean).join(' | ') || ' ');
-  doc.text([company.phone ? `Ph: ${company.phone}` : '', company.email || '', company.regNo ? `Reg No: ${company.regNo}` : ''].filter(Boolean).join('   |   '));
+  // Skip address/contact lines entirely when blank instead of drawing an
+  // empty line — an unfilled Settings page shouldn't leave a gap above the
+  // divider that makes the logo look mis-aligned with the letterhead text.
+  const addressLine = [company.address, [company.city, company.state, company.pincode].filter(Boolean).join(', ')].filter(Boolean).join(' | ');
+  const contactLine = [company.phone ? `Ph: ${company.phone}` : '', company.email || '', company.regNo ? `Reg No: ${company.regNo}` : ''].filter(Boolean).join('   |   ');
+  doc.fontSize(9).fillColor('#475569').font('Helvetica');
+  if (addressLine) doc.text(addressLine);
+  if (contactLine) doc.text(contactLine);
   // A logo shifts headerX right of the margin; reset before the rest of the
   // document so that drift doesn't narrow every unrelated block below.
   doc.x = doc.page.margins.left;
@@ -104,7 +109,13 @@ function generateAgreementPdf({ loan, customer, company }) {
   if (customer.photoBuffer) {
     const photoX = doc.page.width - doc.page.margins.right - photoSize.width;
     try {
-      doc.image(customer.photoBuffer, photoX, introY, { width: photoSize.width, height: photoSize.height, fit: [photoSize.width, photoSize.height] });
+      // `cover` (not `fit`) crops to fill the passport-photo-shaped frame
+      // completely — `fit` preserves the source aspect ratio and letterboxes,
+      // which left visible blank space down one side of most portrait photos.
+      doc.save();
+      doc.rect(photoX, introY, photoSize.width, photoSize.height).clip();
+      doc.image(customer.photoBuffer, photoX, introY, { cover: [photoSize.width, photoSize.height], align: 'center', valign: 'center' });
+      doc.restore();
       doc.rect(photoX, introY, photoSize.width, photoSize.height).lineWidth(1).strokeColor('#cbd5e1').stroke();
     } catch (e) { /* ignore bad image */ }
   }
@@ -177,26 +188,48 @@ function generateAgreementPdf({ loan, customer, company }) {
 
   // ---- Signatures ----
   doc.moveDown(0.6);
-  if (doc.y > doc.page.height - 160) doc.addPage();
+  if (doc.y > doc.page.height - 150) doc.addPage();
+  doc.x = doc.page.margins.left;
   doc.font('Helvetica-Bold').fontSize(11).fillColor('#0f172a').text('3. Signatures');
-  doc.moveDown(1.6);
+  doc.moveDown(1.1);
   const sigY = doc.y;
   const sigColW = pageWidth / 2 - 10;
   doc.moveTo(doc.page.margins.left, sigY).lineTo(doc.page.margins.left + sigColW, sigY).strokeColor('#94a3b8').stroke();
   doc.moveTo(doc.page.margins.left + pageWidth - sigColW, sigY).lineTo(doc.page.width - doc.page.margins.right, sigY).strokeColor('#94a3b8').stroke();
+  // Only print the designation as its own line when it actually differs from
+  // the name line — with no signatory name on file, both used to fall back
+  // to "Authorized Signatory" and print the same line twice.
+  const signatoryName = company.signatory || '';
+  const signatoryDesignation = company.signatoryDesignation || 'Authorized Signatory';
+  const lenderLines = [
+    signatoryName || signatoryDesignation,
+    ...(signatoryName ? [signatoryDesignation] : []),
+    `For ${company.name}`,
+    '(LENDER)'
+  ];
   doc.fontSize(9).font('Helvetica').fillColor('#1e293b')
-    .text(`${company.signatory || 'Authorized Signatory'}\n${company.signatoryDesignation || 'Authorized Signatory'}\nFor ${company.name}\n(LENDER)`, doc.page.margins.left, sigY + 4, { width: sigColW });
+    .text(lenderLines.join('\n'), doc.page.margins.left, sigY + 4, { width: sigColW });
   doc.text(`${customer.name}\n(BORROWER)`, doc.page.margins.left + pageWidth - sigColW, sigY + 4, { width: sigColW });
 
   if (customer.guarantorName) {
-    doc.moveDown(2);
+    doc.moveDown(1.3);
     const gY = doc.y;
     doc.moveTo(doc.page.margins.left, gY).lineTo(doc.page.margins.left + sigColW, gY).strokeColor('#94a3b8').stroke();
     doc.fontSize(9).text(`${customer.guarantorName}\n(GUARANTOR)`, doc.page.margins.left, gY + 4, { width: sigColW });
   }
 
   // ---- Annexure A: Repayment Schedule ----
-  doc.addPage();
+  // Only start a fresh page if the schedule genuinely wouldn't fit below the
+  // signatures — otherwise it flowed onto its own near-empty page even when
+  // there was plenty of room left after a short signature block.
+  doc.x = doc.page.margins.left;
+  doc.moveDown(1.4);
+  if (doc.y > doc.page.height - 200) {
+    doc.addPage();
+  } else {
+    doc.moveTo(doc.page.margins.left, doc.y).lineTo(doc.page.width - doc.page.margins.right, doc.y).strokeColor('#e2e8f0').lineWidth(1).stroke();
+    doc.moveDown(0.8);
+  }
   doc.font('Helvetica-Bold').fontSize(13).fillColor('#0f172a').text('Annexure A: Repayment Schedule', { align: 'center' });
   doc.fontSize(9).font('Helvetica').fillColor('#64748b').text(`Loan No: ${loan.loanNo}   |   Borrower: ${customer.name}`, { align: 'center' });
   doc.moveDown(0.8);
