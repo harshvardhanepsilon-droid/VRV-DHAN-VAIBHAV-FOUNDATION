@@ -6,9 +6,7 @@ const NAV_ITEMS = [
   { key: 'settings', label: 'Settings', href: 'settings.html' }
 ];
 
-const KYC_SIDEBAR_LIMIT = 8;
-
-function renderSidebar(activeKey, companyName, logoUrl, customers) {
+function renderSidebar(activeKey, companyName, logoUrl) {
   const el = document.getElementById('sidebar');
   if (!el) return;
   const name = companyName || 'VRV Dhan Vaibhav Foundation';
@@ -19,23 +17,10 @@ function renderSidebar(activeKey, companyName, logoUrl, customers) {
         <polyline points="82,58 120,128 158,58" fill="none" stroke="#c9a12b" stroke-width="24" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>`;
 
-  const list = customers || [];
-  const currentCustomerId = activeKey === 'customers' ? qs('id') : null;
-  const kycSection = list.length ? `
-    <div class="sidebar-kyc">
-      <div class="sidebar-kyc-title">KYC</div>
-      <div class="sidebar-kyc-list">
-        ${list.slice(0, KYC_SIDEBAR_LIMIT).map((c) => `<a class="sidebar-kyc-item${String(c.id) === currentCustomerId ? ' active' : ''}" href="customer-detail.html?id=${c.id}">${escapeHtml(c.name)}</a>`).join('')}
-      </div>
-      ${list.length > KYC_SIDEBAR_LIMIT ? '<a class="sidebar-kyc-more" href="customers.html">View all customers &rarr;</a>' : ''}
-    </div>
-  ` : '';
-
   el.innerHTML = `
     <div class="brand-row">${logoImg}<div class="brand">${name}</div></div>
     <div class="brand-caption">Loan &amp; KYC Management</div>
     ${NAV_ITEMS.map((item) => `<a class="navbtn${item.key === activeKey ? ' active' : ''}" href="${item.href}">${item.label}</a>`).join('')}
-    ${kycSection}
   `;
 
   if (!document.getElementById('menu-toggle')) {
@@ -62,10 +47,9 @@ function renderSidebar(activeKey, companyName, logoUrl, customers) {
 }
 
 async function initSidebar(activeKey) {
-  renderSidebar(activeKey, 'VRV Dhan Vaibhav Foundation', '', []);
-  const [config, customers] = await Promise.all([
-    api.get('/config').catch(() => null),
-    api.get('/customers').catch(() => [])
-  ]);
-  renderSidebar(activeKey, config ? config.company.name : null, config ? config.company.logoDataUrl : '', customers);
+  renderSidebar(activeKey, 'VRV Dhan Vaibhav Foundation');
+  try {
+    const config = await api.get('/config');
+    renderSidebar(activeKey, config.company.name, config.company.logoDataUrl);
+  } catch (e) { /* keep default */ }
 }
