@@ -1,10 +1,12 @@
+// Activity Log stays a live route (src/routes/activity.js, activity.html) —
+// just dropped from the visible nav rather than removed as a feature.
 const NAV_ITEMS = [
   { key: 'dashboard', label: 'Dashboard', href: 'index.html' },
   { key: 'customers', label: 'Customers', href: 'customers.html' },
   { key: 'loans', label: 'Loans', href: 'loans.html' },
   { key: 'overdue', label: 'Overdue EMIs', href: 'overdue.html' },
+  { key: 'calculator', label: 'EMI Calculator', href: 'emi-calculator.html' },
   { key: 'reports', label: 'Reports', href: 'reports.html' },
-  { key: 'activity', label: 'Activity Log', href: 'activity.html' },
   { key: 'settings', label: 'Settings', href: 'settings.html' }
 ];
 

@@ -1,5 +1,5 @@
 // Bump this on any app-shell change so old caches get cleared on activate.
-const CACHE_VERSION = 'v1';
+const CACHE_VERSION = 'v2';
 const CACHE_NAME = `vdv-crm-${CACHE_VERSION}`;
 
 const APP_SHELL = [
@@ -11,6 +11,7 @@ const APP_SHELL = [
   '/loan-detail.html',
   '/loan-new.html',
   '/overdue.html',
+  '/emi-calculator.html',
   '/reports.html',
   '/activity.html',
   '/settings.html',
@@ -30,6 +31,7 @@ const APP_SHELL = [
   '/assets/js/pages/loan-detail.js',
   '/assets/js/pages/loan-new.js',
   '/assets/js/pages/overdue.js',
+  '/assets/js/pages/emi-calculator.js',
   '/assets/js/pages/reports.js',
   '/assets/js/pages/activity.js',
   '/assets/js/pages/settings.js',

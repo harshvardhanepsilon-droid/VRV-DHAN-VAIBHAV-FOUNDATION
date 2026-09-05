@@ -19,6 +19,18 @@ function updatePreview() {
   await initSidebar('loans');
   document.getElementById('f-date').value = todayISO();
 
+  // Arriving from the EMI Calculator's "Create Loan From This" link —
+  // prefill the terms so they don't have to be re-typed.
+  const presetPrincipal = qs('principal');
+  const presetRate = qs('rate');
+  const presetTenure = qs('tenure');
+  const presetType = qs('type');
+  if (presetPrincipal) document.getElementById('f-principal').value = presetPrincipal;
+  if (presetRate) document.getElementById('f-rate').value = presetRate;
+  if (presetTenure) document.getElementById('f-tenure').value = presetTenure;
+  if (presetType) document.getElementById('f-type').value = presetType;
+  if (presetPrincipal || presetRate || presetTenure) updatePreview();
+
   try {
     const customers = await api.get('/customers');
     const select = document.getElementById('f-customer');

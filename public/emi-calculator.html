@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>EMI Calculator — VRV Dhan Vaibhav Foundation</title>
+<link rel="stylesheet" href="assets/css/style.css" />
+<link rel="icon" type="image/png" href="assets/icons/favicon-32.png" />
+<link rel="manifest" href="manifest.json" />
+<meta name="theme-color" content="#152451" />
+<link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png" />
+</head>
+<body>
+<div id="app-shell">
+  <div class="sidebar" id="sidebar"></div>
+  <div class="main">
+    <h1>EMI Calculator</h1>
+    <p class="pagesub">Quick what-if calculations — nothing here is saved unless you create a loan from the result.</p>
+
+    <div class="panel">
+      <h2>Loan Terms</h2>
+      <div class="form-grid">
+        <div class="field"><label>Principal Amount (₹)</label><input type="number" id="f-principal" min="1" step="0.01" placeholder="e.g. 50000" value="50000"></div>
+        <div class="field"><label>Interest Rate (% per annum)</label><input type="number" id="f-rate" min="0" step="0.01" placeholder="e.g. 24" value="24"></div>
+        <div class="field">
+          <label>Interest Type</label>
+          <select id="f-type">
+            <option value="reducing">Reducing Balance</option>
+            <option value="flat">Flat Rate</option>
+          </select>
+        </div>
+        <div class="field"><label>Tenure (months)</label><input type="number" id="f-tenure" min="1" step="1" placeholder="e.g. 12" value="12"></div>
+      </div>
+    </div>
+
+    <div class="panel" id="preview-panel">
+      <h2>Result</h2>
+      <div class="cards" id="preview-cards"></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-flex"><h2>Month-by-Month Breakdown</h2><a class="btn small primary" id="btn-create-loan" href="#">Create Loan From This</a></div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>#</th><th>Due Date (est.)</th><th class="num">EMI</th><th class="num">Principal</th><th class="num">Interest</th><th class="num">Balance</th></tr></thead>
+        <tbody id="schedule-body"></tbody>
+      </table></div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="assets/js/sw-register.js"></script>
+<script src="assets/js/api.js"></script>
+<script src="assets/js/format.js"></script>
+<script src="assets/js/nav.js"></script>
+<script src="assets/js/emi-calc.js"></script>
+<script src="assets/js/pages/emi-calculator.js"></script>
+</body>
+</html>
