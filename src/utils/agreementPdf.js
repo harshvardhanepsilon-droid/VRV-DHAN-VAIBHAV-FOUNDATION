@@ -215,8 +215,10 @@ function generateAgreementPdf({ loan, customer, company }) {
   // far cleaner than two stacked rows — the previous layout put a second
   // underline directly beneath the Lender block for the Guarantor while the
   // Borrower column sat alone on the right, which looked lopsided and busy.
-  doc.moveDown(0.4);
-  if (doc.y > doc.page.height - 90) doc.addPage();
+  // Extra gap here (vs. the 0.2 between individual terms) so "3. Signatures"
+  // reads as a new section starting, not just another item after term 10.
+  doc.moveDown(1.0);
+  if (doc.y > doc.page.height - 100) doc.addPage();
   doc.x = doc.page.margins.left;
   doc.font('Helvetica-Bold').fontSize(11).fillColor('#0f172a').text('3. Signatures');
   doc.moveDown(0.9);
