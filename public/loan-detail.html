@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Loan — VRV Dhan Vaibhav Foundation</title>
+<link rel="stylesheet" href="assets/css/style.css" />
+<link rel="icon" type="image/png" href="assets/icons/favicon-32.png" />
+</head>
+<body>
+<div id="app-shell">
+  <div class="sidebar" id="sidebar"></div>
+  <div class="main">
+    <div class="breadcrumb"><a href="loans.html">Loans</a> / <span id="crumb-loan">…</span></div>
+    <div class="panel-flex">
+      <div>
+        <h1 id="page-title">Loan</h1>
+        <p class="pagesub" id="page-sub"></p>
+      </div>
+      <div class="actions-row">
+        <a class="btn primary" id="btn-agreement" href="#" target="_blank">⬇ Download Agreement (PDF)</a>
+        <select id="f-status" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:13.5px;">
+          <option value="active">Active</option>
+          <option value="closed">Closed</option>
+          <option value="defaulted">Defaulted</option>
+        </select>
+        <button class="btn danger" id="btn-delete">Delete</button>
+      </div>
+    </div>
+
+    <div class="cards" id="stat-cards"></div>
+
+    <div class="panel">
+      <h2>Loan &amp; Customer Summary</h2>
+      <div class="form-grid" id="summary-grid"></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-flex"><h2>Repayment Schedule</h2><span class="hint" id="schedule-hint"></span></div>
+      <table>
+        <thead><tr><th>#</th><th>Due Date</th><th class="num">EMI</th><th class="num">Principal</th><th class="num">Interest</th><th class="num">Balance</th><th>Status</th><th></th></tr></thead>
+        <tbody id="schedule-body"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<div id="modal-overlay">
+  <div id="modal-sheet" style="max-width:420px;">
+    <h3 id="modal-title">Record Payment</h3>
+    <div id="modal-body"></div>
+    <div id="modal-actions">
+      <button id="modal-cancel">Cancel</button>
+      <button class="primary" id="modal-save">Save</button>
+    </div>
+  </div>
+</div>
+
+<script src="assets/js/api.js"></script>
+<script src="assets/js/format.js"></script>
+<script src="assets/js/nav.js"></script>
+<script src="assets/js/modal.js"></script>
+<script src="assets/js/pages/loan-detail.js"></script>
+</body>
+</html>

@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Customers — VRV Dhan Vaibhav Foundation</title>
+<link rel="stylesheet" href="assets/css/style.css" />
+<link rel="icon" type="image/png" href="assets/icons/favicon-32.png" />
+</head>
+<body>
+<div id="app-shell">
+  <div class="sidebar" id="sidebar"></div>
+  <div class="main">
+    <div class="panel-flex">
+      <div>
+        <h1>Customers</h1>
+        <p class="pagesub">KYC records for every borrower.</p>
+      </div>
+      <button class="btn primary" id="btn-new-customer">+ New Customer</button>
+    </div>
+
+    <div class="cards" id="stat-cards"></div>
+
+    <div class="panel">
+      <div class="panel-flex">
+        <h2>All Customers</h2>
+        <input type="text" id="search" placeholder="Search by name, phone, or Aadhaar…" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:13.5px;min-width:240px;">
+      </div>
+      <table>
+        <thead><tr><th></th><th>Name</th><th>Phone</th><th>City</th><th class="num">Loans</th><th class="num">Outstanding</th><th></th></tr></thead>
+        <tbody id="customer-body"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<div id="modal-overlay">
+  <div id="modal-sheet">
+    <h3 id="modal-title">Customer</h3>
+    <div id="modal-body"></div>
+    <div id="modal-actions">
+      <button id="modal-cancel">Cancel</button>
+      <button class="primary" id="modal-save">Save</button>
+    </div>
+  </div>
+</div>
+
+<script src="assets/js/api.js"></script>
+<script src="assets/js/format.js"></script>
+<script src="assets/js/nav.js"></script>
+<script src="assets/js/modal.js"></script>
+<script src="assets/js/customer-form.js"></script>
+<script src="assets/js/pages/customers.js"></script>
+</body>
+</html>

@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Overdue EMIs — VRV Dhan Vaibhav Foundation</title>
+<link rel="stylesheet" href="assets/css/style.css" />
+<link rel="icon" type="image/png" href="assets/icons/favicon-32.png" />
+</head>
+<body>
+<div id="app-shell">
+  <div class="sidebar" id="sidebar"></div>
+  <div class="main">
+    <h1>Overdue EMIs</h1>
+    <p class="pagesub">Installments past their due date, across every loan.</p>
+
+    <div class="cards" id="stat-cards"></div>
+
+    <div class="panel">
+      <h2>Overdue Installments</h2>
+      <table>
+        <thead><tr><th>Customer</th><th>Loan No</th><th>Due Date</th><th class="num">Days Overdue</th><th class="num">EMI</th><th></th></tr></thead>
+        <tbody id="overdue-body"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="assets/js/api.js"></script>
+<script src="assets/js/format.js"></script>
+<script src="assets/js/nav.js"></script>
+<script src="assets/js/pages/overdue.js"></script>
+</body>
+</html>

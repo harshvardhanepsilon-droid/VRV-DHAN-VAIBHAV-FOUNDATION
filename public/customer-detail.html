@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Customer — VRV Dhan Vaibhav Foundation</title>
+<link rel="stylesheet" href="assets/css/style.css" />
+<link rel="icon" type="image/png" href="assets/icons/favicon-32.png" />
+</head>
+<body>
+<div id="app-shell">
+  <div class="sidebar" id="sidebar"></div>
+  <div class="main">
+    <div class="breadcrumb"><a href="customers.html">Customers</a> / <span id="crumb-name">…</span></div>
+    <div class="panel-flex">
+      <h1 id="page-title">Customer</h1>
+      <div class="actions-row">
+        <a class="btn primary" id="btn-new-loan" href="#">+ New Loan</a>
+        <button class="btn danger" id="btn-delete">Delete</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Photo &amp; Identity Documents</h2>
+      <div class="form-grid">
+        <div class="field">
+          <label>Customer Photo</label>
+          <div class="avatar-upload">
+            <img id="photo-preview" class="avatar-preview" style="display:none;">
+            <div id="photo-placeholder" class="avatar-placeholder">?</div>
+            <div>
+              <input type="file" id="photo-input" accept="image/*" style="display:none;">
+              <button class="btn small" id="btn-upload-photo">Upload Photo</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="doc-grid" style="margin-top:18px;">
+        <div class="doc-slot">
+          <div id="id-front-empty" class="doc-empty">No ID front uploaded</div>
+          <img id="id-front-preview" style="display:none;">
+          <input type="file" id="id-front-input" accept="image/*" style="display:none;">
+          <button class="btn small" id="btn-upload-front">Upload ID Front (Aadhaar/Voter/etc.)</button>
+        </div>
+        <div class="doc-slot">
+          <div id="id-back-empty" class="doc-empty">No ID back uploaded</div>
+          <img id="id-back-preview" style="display:none;">
+          <input type="file" id="id-back-input" accept="image/*" style="display:none;">
+          <button class="btn small" id="btn-upload-back">Upload ID Back</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-flex"><h2>KYC Details</h2><button class="btn small" id="btn-edit">Edit</button></div>
+      <div id="kyc-view"></div>
+    </div>
+
+    <div class="panel">
+      <h2>Loans</h2>
+      <table>
+        <thead><tr><th>Loan No</th><th class="num">Principal</th><th class="num">EMI</th><th>Status</th><th class="num">Outstanding</th><th></th></tr></thead>
+        <tbody id="loans-body"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<div id="modal-overlay">
+  <div id="modal-sheet">
+    <h3 id="modal-title">Edit KYC</h3>
+    <div id="modal-body"></div>
+    <div id="modal-actions">
+      <button id="modal-cancel">Cancel</button>
+      <button class="primary" id="modal-save">Save</button>
+    </div>
+  </div>
+</div>
+
+<script src="assets/js/api.js"></script>
+<script src="assets/js/format.js"></script>
+<script src="assets/js/nav.js"></script>
+<script src="assets/js/modal.js"></script>
+<script src="assets/js/customer-form.js"></script>
+<script src="assets/js/pages/customer-detail.js"></script>
+</body>
+</html>

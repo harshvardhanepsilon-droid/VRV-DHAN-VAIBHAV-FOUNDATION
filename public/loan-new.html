@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>New Loan — VRV Dhan Vaibhav Foundation</title>
+<link rel="stylesheet" href="assets/css/style.css" />
+<link rel="icon" type="image/png" href="assets/icons/favicon-32.png" />
+</head>
+<body>
+<div id="app-shell">
+  <div class="sidebar" id="sidebar"></div>
+  <div class="main">
+    <div class="breadcrumb"><a href="loans.html">Loans</a> / New Loan</div>
+    <h1>New Loan</h1>
+    <p class="pagesub">Enter loan terms — EMI and repayment schedule are calculated automatically.</p>
+
+    <div class="panel">
+      <h2>Loan Details</h2>
+      <div class="form-grid">
+        <div class="field span-2">
+          <label>Customer *</label>
+          <select id="f-customer"><option value="">Select a customer…</option></select>
+          <span class="hint">Don't see them? <a class="link" href="customers.html">Add a new customer</a> first.</span>
+        </div>
+        <div class="field"><label>Principal Amount (₹) *</label><input type="number" id="f-principal" min="1" step="0.01" placeholder="e.g. 50000"></div>
+        <div class="field"><label>Interest Rate (% per annum) *</label><input type="number" id="f-rate" min="0" step="0.01" placeholder="e.g. 24"></div>
+        <div class="field">
+          <label>Interest Type</label>
+          <select id="f-type">
+            <option value="reducing">Reducing Balance</option>
+            <option value="flat">Flat Rate</option>
+          </select>
+        </div>
+        <div class="field"><label>Tenure (months) *</label><input type="number" id="f-tenure" min="1" step="1" placeholder="e.g. 12"></div>
+        <div class="field"><label>Disbursement Date *</label><input type="date" id="f-date"></div>
+        <div class="field"><label>Processing Fee (₹)</label><input type="number" id="f-fee" min="0" step="0.01" value="0"></div>
+        <div class="field span-2"><label>Purpose of Loan</label><input id="f-purpose" placeholder="e.g. Business working capital"></div>
+        <div class="field span-2"><label>Collateral / Security</label><input id="f-collateral" placeholder="e.g. None / Gold jewellery / Property papers"></div>
+      </div>
+    </div>
+
+    <div class="panel" id="preview-panel" style="display:none;">
+      <h2>EMI Preview</h2>
+      <div class="cards" id="preview-cards"></div>
+    </div>
+
+    <div class="actions-row">
+      <button class="btn primary" id="btn-create">Create Loan</button>
+      <a class="btn" href="loans.html">Cancel</a>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="assets/js/api.js"></script>
+<script src="assets/js/format.js"></script>
+<script src="assets/js/nav.js"></script>
+<script src="assets/js/emi-calc.js"></script>
+<script src="assets/js/pages/loan-new.js"></script>
+</body>
+</html>

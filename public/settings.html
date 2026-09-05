@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Settings — VRV Dhan Vaibhav Foundation</title>
+<link rel="stylesheet" href="assets/css/style.css" />
+<link rel="icon" type="image/png" href="assets/icons/favicon-32.png" />
+</head>
+<body>
+<div id="app-shell">
+  <div class="sidebar" id="sidebar"></div>
+  <div class="main">
+    <h1>Settings</h1>
+    <p class="pagesub">Company details used on printed loan agreements and letterheads.</p>
+
+    <div class="panel">
+      <h2>Logo</h2>
+      <div class="avatar-upload">
+        <img id="logo-preview" class="avatar-preview" style="display:none;">
+        <div id="logo-placeholder" class="avatar-placeholder">VDV</div>
+        <div>
+          <input type="file" id="logo-input" accept="image/*" style="display:none;">
+          <button class="btn small" id="btn-upload-logo">Upload Logo</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Company Details</h2>
+      <div class="form-grid">
+        <div class="field span-2"><label>Company / Foundation Name</label><input id="f-name"></div>
+        <div class="field span-2"><label>Tagline</label><input id="f-tagline"></div>
+        <div class="field span-2"><label>Address</label><textarea id="f-address"></textarea></div>
+        <div class="field"><label>City</label><input id="f-city"></div>
+        <div class="field"><label>State</label><input id="f-state"></div>
+        <div class="field"><label>Pincode</label><input id="f-pincode"></div>
+        <div class="field"><label>Registration No.</label><input id="f-regno"></div>
+        <div class="field"><label>PAN</label><input id="f-pan"></div>
+        <div class="field"><label>Phone</label><input id="f-phone"></div>
+        <div class="field"><label>Email</label><input id="f-email"></div>
+        <div class="field"><label>Authorized Signatory</label><input id="f-signatory"></div>
+        <div class="field"><label>Signatory Designation</label><input id="f-signatory-desig"></div>
+        <div class="field"><label>Jurisdiction (for agreements)</label><input id="f-jurisdiction" placeholder="e.g. Jaipur"></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Default Loan Terms</h2>
+      <div class="form-grid">
+        <div class="field"><label>Default Interest Rate (% p.a.)</label><input type="number" id="f-rate"></div>
+        <div class="field">
+          <label>Default Interest Type</label>
+          <select id="f-type"><option value="reducing">Reducing Balance</option><option value="flat">Flat Rate</option></select>
+        </div>
+        <div class="field"><label>Late Payment Penalty (% per month)</label><input type="number" id="f-penalty"></div>
+      </div>
+    </div>
+
+    <div class="actions-row">
+      <button class="btn primary" id="btn-save">Save Settings</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="assets/js/api.js"></script>
+<script src="assets/js/format.js"></script>
+<script src="assets/js/nav.js"></script>
+<script src="assets/js/pages/settings.js"></script>
+</body>
+</html>

@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Loans — VRV Dhan Vaibhav Foundation</title>
+<link rel="stylesheet" href="assets/css/style.css" />
+<link rel="icon" type="image/png" href="assets/icons/favicon-32.png" />
+</head>
+<body>
+<div id="app-shell">
+  <div class="sidebar" id="sidebar"></div>
+  <div class="main">
+    <div class="panel-flex">
+      <div>
+        <h1>Loans</h1>
+        <p class="pagesub">Every loan, its EMI, and repayment status.</p>
+      </div>
+      <a class="btn primary" href="loan-new.html">+ New Loan</a>
+    </div>
+
+    <div class="cards" id="stat-cards"></div>
+
+    <div class="panel">
+      <div class="panel-flex">
+        <h2>All Loans</h2>
+        <div class="actions-row">
+          <select id="filter-status" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:13.5px;">
+            <option value="">All statuses</option>
+            <option value="active">Active</option>
+            <option value="closed">Closed</option>
+            <option value="defaulted">Defaulted</option>
+          </select>
+          <input type="text" id="search" placeholder="Search customer or loan no…" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:13.5px;min-width:220px;">
+        </div>
+      </div>
+      <table>
+        <thead><tr><th>Loan No</th><th>Customer</th><th class="num">Principal</th><th class="num">Rate</th><th class="num">Tenure</th><th class="num">EMI</th><th>Status</th><th>Next Due</th><th></th></tr></thead>
+        <tbody id="loans-body"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="assets/js/api.js"></script>
+<script src="assets/js/format.js"></script>
+<script src="assets/js/nav.js"></script>
+<script src="assets/js/pages/loans.js"></script>
+</body>
+</html>
