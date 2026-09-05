@@ -47,7 +47,9 @@ function applyFilters() {
     return;
   }
   renderStats();
-  renderTable(allLoans);
+  const statusFromUrl = qs('status');
+  if (statusFromUrl) document.getElementById('filter-status').value = statusFromUrl;
+  applyFilters();
   document.getElementById('filter-status').addEventListener('change', applyFilters);
   document.getElementById('search').addEventListener('input', applyFilters);
 })();

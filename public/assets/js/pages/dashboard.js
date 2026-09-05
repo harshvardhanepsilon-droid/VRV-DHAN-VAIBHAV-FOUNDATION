@@ -10,12 +10,12 @@
   }
 
   document.getElementById('stat-cards').innerHTML = `
-    <div class="card"><div class="card-label">Total Customers</div><div class="card-value">${data.totalCustomers}</div></div>
-    <div class="card"><div class="card-label">Active Loans</div><div class="card-value">${data.activeLoanCount}</div><div class="card-sub">${data.totalLoans} total &middot; ${data.closedLoanCount} closed</div></div>
-    <div class="card success"><div class="card-label">Total Disbursed</div><div class="card-value">${moneyShort(data.totalDisbursed)}</div></div>
-    <div class="card success"><div class="card-label">Total Collected</div><div class="card-value">${moneyShort(data.totalCollected)}</div></div>
-    <div class="card warning"><div class="card-label">Outstanding</div><div class="card-value">${moneyShort(data.totalOutstanding)}</div></div>
-    <div class="card danger"><div class="card-label">Overdue EMIs</div><div class="card-value">${data.overdueCount}</div><div class="card-sub">${moneyShort(data.overdueAmount)} due</div></div>
+    <a class="card" href="customers.html"><div class="card-label">Total Customers</div><div class="card-value">${data.totalCustomers}</div></a>
+    <a class="card" href="loans.html?status=active"><div class="card-label">Active Loans</div><div class="card-value">${data.activeLoanCount}</div><div class="card-sub">${data.totalLoans} total &middot; ${data.closedLoanCount} closed</div></a>
+    <a class="card success" href="loans.html"><div class="card-label">Total Disbursed</div><div class="card-value">${moneyShort(data.totalDisbursed)}</div></a>
+    <a class="card success" href="reports.html"><div class="card-label">Total Collected</div><div class="card-value">${moneyShort(data.totalCollected)}</div></a>
+    <a class="card warning" href="loans.html"><div class="card-label">Outstanding</div><div class="card-value">${moneyShort(data.totalOutstanding)}</div></a>
+    <a class="card danger" href="overdue.html"><div class="card-label">Overdue EMIs</div><div class="card-value">${data.overdueCount}</div><div class="card-sub">${moneyShort(data.overdueAmount)} due</div></a>
   `;
 
   const overdueBody = document.getElementById('overdue-body');
