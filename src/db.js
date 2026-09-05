@@ -118,19 +118,22 @@ async function ensureSchema() {
   return readyPromise;
 }
 
-// Sequence numbers are per (key, year) — e.g. loan numbers restart their
-// visible sequence display each calendar year but never reuse a number.
-async function nextDocNumber(client, counterKey, prefix, date) {
+// Loan numbers are one more than the highest number currently in use for
+// that prefix/year — not a permanent monotonic counter — so deleting the
+// most recently created loan frees its number back up for the next one
+// instead of burning it forever. Must be called on a client already inside
+// a transaction (see loans.js): the advisory lock is transaction-scoped, so
+// it only actually serializes concurrent creates against each other when
+// held for the lifetime of the surrounding INSERT.
+async function nextLoanNumber(client, prefix, date) {
   const year = new Date(date || Date.now()).getFullYear();
-  const key = `${counterKey}:${year}`;
+  await client.query('SELECT pg_advisory_xact_lock(hashtext($1))', [`${prefix}:${year}`]);
   const { rows } = await client.query(
-    `INSERT INTO counters (key, value) VALUES ($1, 1)
-     ON CONFLICT (key) DO UPDATE SET value = counters.value + 1
-     RETURNING value`,
-    [key]
+    `SELECT COALESCE(MAX(NULLIF(regexp_replace(loan_no, '^.*/', ''), '')::int), 0) AS max_seq
+     FROM loans WHERE loan_no LIKE $1`,
+    [`${prefix}/${year}/%`]
   );
-  const seq = String(rows[0].value).padStart(4, '0');
-  return `${prefix}/${year}/${seq}`;
+  return `${prefix}/${year}/${Number(rows[0].max_seq) + 1}`;
 }
 
 // Fire-and-forget: a logging failure should never break the action it's
@@ -142,4 +145,4 @@ function logActivity(entityType, entityId, action, summary) {
   ).catch((err) => console.error('activity log failed:', err.message));
 }
 
-module.exports = { pool, ensureSchema, nextDocNumber, logActivity, DEFAULT_COMPANY };
+module.exports = { pool, ensureSchema, nextLoanNumber, logActivity, DEFAULT_COMPANY };

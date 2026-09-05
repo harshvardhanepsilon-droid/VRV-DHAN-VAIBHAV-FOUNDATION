@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { pool, nextDocNumber, logActivity } = require('../db');
+const { pool, nextLoanNumber, logActivity } = require('../db');
 const { buildSchedule, round2, toISODate } = require('../utils/emi');
 const { generateAgreementPdf } = require('../utils/agreementPdf');
 const { generateReceiptPdf } = require('../utils/receiptPdf');
@@ -116,21 +116,35 @@ router.post('/', async (req, res) => {
   if (!tenureMonths || tenureMonths <= 0) return res.status(400).json({ error: 'Tenure (months) must be greater than 0' });
 
   const { schedule, emiAmount, totalInterest, totalPayable } = buildSchedule({ principal, interestRatePct, tenureMonths, interestType, disbursementDate, firstEmiDate });
-  const loanNo = await nextDocNumber(pool, 'loan', 'VDV/LN', disbursementDate);
 
-  const { rows } = await pool.query(
-    `INSERT INTO loans (
-      loan_no, customer_id, purpose, principal, interest_rate_pct, interest_type, tenure_months,
-      disbursement_date, emi_amount, total_interest, total_payable, processing_fee, collateral, status, schedule
-    ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,'active',$14)
-    RETURNING *`,
-    [
-      loanNo, body.customerId, body.purpose || '', round2(principal), interestRatePct, interestType, tenureMonths,
-      disbursementDate, emiAmount, totalInterest, totalPayable, Number(body.processingFee) || 0, body.collateral || '',
-      JSON.stringify(schedule)
-    ]
-  );
-  logActivity('loan', rows[0].id, 'created', `Created loan ${loanNo} for ${custRows[0].name} (${fmtRupee(principal)})`);
+  // Number generation and the insert share one transaction so the advisory
+  // lock inside nextLoanNumber actually serializes concurrent loan creates
+  // against each other instead of releasing before the row lands.
+  const client = await pool.connect();
+  let rows;
+  try {
+    await client.query('BEGIN');
+    const loanNo = await nextLoanNumber(client, 'VDV/LN', disbursementDate);
+    ({ rows } = await client.query(
+      `INSERT INTO loans (
+        loan_no, customer_id, purpose, principal, interest_rate_pct, interest_type, tenure_months,
+        disbursement_date, emi_amount, total_interest, total_payable, processing_fee, collateral, status, schedule
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,'active',$14)
+      RETURNING *`,
+      [
+        loanNo, body.customerId, body.purpose || '', round2(principal), interestRatePct, interestType, tenureMonths,
+        disbursementDate, emiAmount, totalInterest, totalPayable, Number(body.processingFee) || 0, body.collateral || '',
+        JSON.stringify(schedule)
+      ]
+    ));
+    await client.query('COMMIT');
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
+  logActivity('loan', rows[0].id, 'created', `Created loan ${rows[0].loan_no} for ${custRows[0].name} (${fmtRupee(principal)})`);
   res.status(201).json(toLoanDTO(rows[0], custRows[0].name, custRows[0].phone));
 });
 
