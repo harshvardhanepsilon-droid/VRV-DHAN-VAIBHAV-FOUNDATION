@@ -4,6 +4,7 @@ const { pool, nextLoanNumber, logActivity } = require('../db');
 const { buildSchedule, round2, toISODate } = require('../utils/emi');
 const { generateAgreementPdf } = require('../utils/agreementPdf');
 const { generateReceiptPdf } = require('../utils/receiptPdf');
+const { generateNocPdf } = require('../utils/nocPdf');
 
 function fmtRupee(n) {
   return '₹' + Number(n || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 });
@@ -303,6 +304,40 @@ router.get('/:id/agreement.pdf', async (req, res) => {
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="Loan-Agreement-${loan.loanNo.replace(/\//g, '-')}.pdf"`);
     generateAgreementPdf({ loan, customer, company }).pipe(res);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.get('/:id/noc.pdf', async (req, res) => {
+  const { rows } = await pool.query('SELECT * FROM loans WHERE id = $1', [req.params.id]);
+  if (!rows.length) return res.status(404).json({ error: 'Loan not found' });
+  const loanRow = rows[0];
+  const schedule = loanRow.schedule || [];
+  if (!schedule.length || !schedule.every((s) => s.status === 'paid')) {
+    return res.status(400).json({ error: 'This loan is not fully repaid yet — every installment must be marked paid before a NOC can be issued.' });
+  }
+  const { rows: custRows } = await pool.query('SELECT * FROM customers WHERE id = $1', [loanRow.customer_id]);
+  if (!custRows.length) return res.status(400).json({ error: 'Loan has no linked customer' });
+  const c = custRows[0];
+  const customer = {
+    name: c.name, fatherOrSpouseName: c.father_or_spouse_name,
+    address: c.address, city: c.city, state: c.state, pincode: c.pincode
+  };
+  const { rows: configRows } = await pool.query('SELECT company, logo_data FROM config WHERE id = 1');
+  const company = { ...configRows[0].company, logoBuffer: configRows[0].logo_data || null };
+
+  const loan = { loanNo: loanRow.loan_no, principal: Number(loanRow.principal), disbursementDate: loanRow.disbursement_date };
+  const totalPaid = round2(schedule.reduce((s, i) => s + Number(i.paidAmount || 0), 0));
+  // The most recent payment date across every installment is the day the
+  // loan actually became fully settled.
+  const closureDate = schedule.reduce((latest, i) => (i.paidDate && i.paidDate > latest ? i.paidDate : latest), schedule[0].paidDate || loanRow.disbursement_date);
+
+  try {
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="NOC-${loan.loanNo.replace(/\//g, '-')}.pdf"`);
+    generateNocPdf({ company, customer, loan, closureDate, totalPaid }).pipe(res);
+    logActivity('loan', loanRow.id, 'noc_generated', `Generated NOC for ${loan.loanNo}`);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

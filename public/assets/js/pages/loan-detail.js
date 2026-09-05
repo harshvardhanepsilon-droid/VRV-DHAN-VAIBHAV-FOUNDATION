@@ -101,6 +101,10 @@ async function loadLoan() {
   document.getElementById('crumb-loan').textContent = loan.loanNo;
   document.getElementById('page-sub').textContent = `${loan.customer ? loan.customer.name : 'Unknown customer'} — ${loan.tenureMonths} month ${loan.interestType === 'flat' ? 'flat-rate' : 'reducing-balance'} loan`;
   document.getElementById('btn-agreement').href = `/api/loans/${loanId}/agreement.pdf`;
+  const fullyPaid = loan.installmentsTotal > 0 && loan.installmentsPaid === loan.installmentsTotal;
+  const btnNoc = document.getElementById('btn-noc');
+  btnNoc.style.display = fullyPaid ? '' : 'none';
+  if (fullyPaid) btnNoc.href = `/api/loans/${loanId}/noc.pdf`;
   document.getElementById('f-status').value = loan.status;
   document.getElementById('schedule-hint').textContent = `${loan.installmentsTotal} installments starting ${fmtDate(loan.schedule[0] ? loan.schedule[0].dueDate : loan.disbursementDate)}`;
   renderStats();

@@ -45,6 +45,11 @@ function renderPhotoAndDocs() {
   const backEmpty = document.getElementById('id-back-empty');
   if (customer.idBackPath) { backImg.src = customer.idBackPath + '?t=' + Date.now(); backImg.style.display = 'block'; backEmpty.style.display = 'none'; }
   else { backImg.style.display = 'none'; backEmpty.style.display = 'flex'; }
+
+  const panImg = document.getElementById('pan-image-preview');
+  const panEmpty = document.getElementById('pan-image-empty');
+  if (customer.panImagePath) { panImg.src = customer.panImagePath + '?t=' + Date.now(); panImg.style.display = 'block'; panEmpty.style.display = 'none'; }
+  else { panImg.style.display = 'none'; panEmpty.style.display = 'flex'; }
 }
 
 function renderLoans() {
@@ -131,6 +136,7 @@ function uploadFile(inputEl, uploadFn) {
   document.getElementById('btn-upload-photo').addEventListener('click', () => document.getElementById('photo-input').click());
   document.getElementById('btn-upload-front').addEventListener('click', () => document.getElementById('id-front-input').click());
   document.getElementById('btn-upload-back').addEventListener('click', () => document.getElementById('id-back-input').click());
+  document.getElementById('btn-upload-pan').addEventListener('click', () => document.getElementById('pan-image-input').click());
 
   uploadFile(document.getElementById('photo-input'), (file) => {
     const fd = new FormData();
@@ -145,6 +151,11 @@ function uploadFile(inputEl, uploadFn) {
   uploadFile(document.getElementById('id-back-input'), (file) => {
     const fd = new FormData();
     fd.append('idBack', file);
+    return api.postForm(`/customers/${customerId}/documents`, fd);
+  });
+  uploadFile(document.getElementById('pan-image-input'), (file) => {
+    const fd = new FormData();
+    fd.append('panImage', file);
     return api.postForm(`/customers/${customerId}/documents`, fd);
   });
 })();

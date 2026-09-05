@@ -101,6 +101,11 @@ CREATE TABLE IF NOT EXISTS activity_log (
   summary TEXT NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- customers predates the PAN card image field, so it's added via ALTER
+-- rather than the CREATE TABLE above (which only runs against a fresh table).
+ALTER TABLE customers ADD COLUMN IF NOT EXISTS pan_image_data BYTEA;
+ALTER TABLE customers ADD COLUMN IF NOT EXISTS pan_image_mime TEXT;
 `;
 
 let readyPromise = null;

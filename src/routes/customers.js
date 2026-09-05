@@ -36,6 +36,7 @@ function toCustomerDTO(row) {
     photoPath: row.photo_data ? `/api/customers/${row.id}/photo` : '',
     idFrontPath: row.id_front_data ? `/api/customers/${row.id}/document/front` : '',
     idBackPath: row.id_back_data ? `/api/customers/${row.id}/document/back` : '',
+    panImagePath: row.pan_image_data ? `/api/customers/${row.id}/document/pan` : '',
     createdAt: row.created_at,
     updatedAt: row.updated_at
   };
@@ -154,7 +155,7 @@ router.post('/:id/photo', upload.single('photo'), async (req, res) => {
   res.json(toCustomerDTO(rows[0]));
 });
 
-router.post('/:id/documents', upload.fields([{ name: 'idFront', maxCount: 1 }, { name: 'idBack', maxCount: 1 }]), async (req, res) => {
+router.post('/:id/documents', upload.fields([{ name: 'idFront', maxCount: 1 }, { name: 'idBack', maxCount: 1 }, { name: 'panImage', maxCount: 1 }]), async (req, res) => {
   const files = req.files || {};
   const sets = [];
   const values = [];
@@ -167,6 +168,11 @@ router.post('/:id/documents', upload.fields([{ name: 'idFront', maxCount: 1 }, {
   if (files.idBack && files.idBack[0]) {
     const compressed = await compressDocument(files.idBack[0].buffer);
     sets.push(`id_back_data=$${i++}`, `id_back_mime=$${i++}`);
+    values.push(compressed, 'image/jpeg');
+  }
+  if (files.panImage && files.panImage[0]) {
+    const compressed = await compressDocument(files.panImage[0].buffer);
+    sets.push(`pan_image_data=$${i++}`, `pan_image_mime=$${i++}`);
     values.push(compressed, 'image/jpeg');
   }
   if (!sets.length) return res.status(400).json({ error: 'No file uploaded' });
@@ -189,5 +195,6 @@ async function serveImage(req, res, dataCol, mimeCol) {
 router.get('/:id/photo', (req, res) => serveImage(req, res, 'photo_data', 'photo_mime'));
 router.get('/:id/document/front', (req, res) => serveImage(req, res, 'id_front_data', 'id_front_mime'));
 router.get('/:id/document/back', (req, res) => serveImage(req, res, 'id_back_data', 'id_back_mime'));
+router.get('/:id/document/pan', (req, res) => serveImage(req, res, 'pan_image_data', 'pan_image_mime'));
 
 module.exports = router;
