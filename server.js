@@ -23,10 +23,14 @@ app.use(express.json({ limit: '5mb' }));
 app.use(express.urlencoded({ extended: true }));
 
 // Auth endpoints and static assets (CSS/JS/icons — no customer data in them)
-// stay reachable without a session so the login page itself can load.
+// stay reachable without a session so the login page itself can load. The
+// manifest and service worker need the same treatment: the SW has to be
+// installable (and able to cache the login page) before anyone signs in.
 app.use('/api/auth', authRouter);
 app.use('/assets', express.static(path.join(__dirname, 'public', 'assets')));
 app.get('/login.html', (req, res) => res.sendFile(path.join(__dirname, 'public', 'login.html')));
+app.get('/manifest.json', (req, res) => res.sendFile(path.join(__dirname, 'public', 'manifest.json')));
+app.get('/sw.js', (req, res) => res.sendFile(path.join(__dirname, 'public', 'sw.js')));
 
 // Everything else — the API and every other page — requires a session.
 app.use('/api/customers', requireAuthApi, customersRouter);
