@@ -68,31 +68,45 @@ function generateAgreementPdf({ loan, customer, company }) {
   // ---- Parties ----
   doc.fontSize(10).fillColor('#1e293b').font('Helvetica');
   const introY = doc.y;
-  // Reserve space on the right for the borrower photo (drawn below, 70pt wide)
-  // so these opening lines don't wrap under it.
-  const introWidth = customer.photoBuffer ? pageWidth - 80 : pageWidth;
+  const photoSize = { width: 72, height: 86 };
+  const photoBottom = introY + photoSize.height + 8;
+  const narrowWidth = pageWidth - photoSize.width - 14;
+  // Every opening line stays narrowed until it has actually cleared the
+  // photo's bottom edge — a fixed line count broke as soon as any line
+  // (lender address, borrower name/address) ran long enough to wrap twice.
+  const widthFor = () => (customer.photoBuffer && doc.y < photoBottom ? narrowWidth : pageWidth);
+
   doc.text(
     `This Loan Agreement ("Agreement") is made and executed on ${fmtDate(loan.disbursementDate)}, between:`,
-    doc.page.margins.left, doc.y, { width: introWidth }
+    doc.page.margins.left, doc.y, { width: widthFor() }
   );
   doc.moveDown(0.5);
   doc.x = doc.page.margins.left;
-  doc.font('Helvetica-Bold').text(`${company.name || 'VRV DHAN VAIBHAV FOUNDATION'}`, doc.page.margins.left, doc.y, { continued: true, width: introWidth }).font('Helvetica')
-    .text(`, having its office at ${[company.address, company.city, company.state, company.pincode].filter(Boolean).join(', ') || 'the address on record'} (hereinafter referred to as the "LENDER"),`, { width: introWidth });
+  doc.font('Helvetica-Bold').text(`${company.name || 'VRV DHAN VAIBHAV FOUNDATION'}`, doc.page.margins.left, doc.y, { continued: true, width: widthFor() }).font('Helvetica')
+    .text(`, having its office at ${[company.address, company.city, company.state, company.pincode].filter(Boolean).join(', ') || 'the address on record'} (hereinafter referred to as the "LENDER"),`, { width: widthFor() });
   doc.moveDown(0.3);
   doc.x = doc.page.margins.left;
-  doc.text('AND', doc.page.margins.left, doc.y, { width: introWidth });
+  doc.text('AND', doc.page.margins.left, doc.y, { width: widthFor() });
   doc.moveDown(0.3);
   doc.x = doc.page.margins.left;
-  doc.font('Helvetica-Bold').text(`${customer.name}`, doc.page.margins.left, doc.y, { continued: true, width: pageWidth }).font('Helvetica')
-    .text(`, S/o D/o W/o ${customer.fatherOrSpouseName || '__________'}, residing at ${[customer.address, customer.city, customer.state, customer.pincode].filter(Boolean).join(', ') || '__________'} (hereinafter referred to as the "BORROWER").`, { width: pageWidth });
+  doc.font('Helvetica-Bold').text(`${customer.name}`, doc.page.margins.left, doc.y, { continued: true, width: widthFor() }).font('Helvetica')
+    .text(`, S/o D/o W/o ${customer.fatherOrSpouseName || '__________'}, residing at ${[customer.address, customer.city, customer.state, customer.pincode].filter(Boolean).join(', ') || '__________'} (hereinafter referred to as the "BORROWER").`, { width: widthFor() });
   doc.moveDown(0.3);
   doc.x = doc.page.margins.left;
-  doc.text('The Lender and the Borrower shall collectively be referred to as the "Parties" and each individually as a "Party".', doc.page.margins.left, doc.y, { width: pageWidth });
+  doc.text('The Lender and the Borrower shall collectively be referred to as the "Parties" and each individually as a "Party".', doc.page.margins.left, doc.y, { width: widthFor() });
 
-  // Borrower photo, top-right of the parties block
+  // Ensure the body text below always starts clear of the photo, even if
+  // the paragraphs above were short enough to finish above photoBottom.
+  if (customer.photoBuffer && doc.y < photoBottom) doc.y = photoBottom;
+
+  // Borrower photo, top-right of the parties block, with a thin frame so it
+  // reads as an attached ID photo rather than a stray image dropped on the page.
   if (customer.photoBuffer) {
-    try { doc.image(customer.photoBuffer, doc.page.width - doc.page.margins.right - 70, introY, { width: 70, height: 82, fit: [70, 82] }); } catch (e) { /* ignore */ }
+    const photoX = doc.page.width - doc.page.margins.right - photoSize.width;
+    try {
+      doc.image(customer.photoBuffer, photoX, introY, { width: photoSize.width, height: photoSize.height, fit: [photoSize.width, photoSize.height] });
+      doc.rect(photoX, introY, photoSize.width, photoSize.height).lineWidth(1).strokeColor('#cbd5e1').stroke();
+    } catch (e) { /* ignore bad image */ }
   }
 
   doc.moveDown(0.9);
