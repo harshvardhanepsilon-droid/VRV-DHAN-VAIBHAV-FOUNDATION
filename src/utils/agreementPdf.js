@@ -45,23 +45,46 @@ function generateAgreementPdf({ loan, customer, company }) {
   const pageWidth = doc.page.width - doc.page.margins.left - doc.page.margins.right;
 
   // ---- Letterhead ----
-  let headerX = doc.page.margins.left;
-  if (company.logoBuffer) {
-    try { doc.image(company.logoBuffer, headerX, doc.y, { width: 48, height: 48 }); headerX += 58; } catch (e) { /* ignore bad image */ }
-  }
-  doc.fontSize(17).fillColor('#0f172a').font('Helvetica-Bold')
-    .text(company.name || 'VRV DHAN VAIBHAV FOUNDATION', headerX, doc.y, { width: pageWidth - (headerX - doc.page.margins.left) });
+  const headerStartY = doc.y;
+  const hasLogo = !!company.logoBuffer;
+  const logoSize = 46;
+  const headerX = hasLogo ? doc.page.margins.left + logoSize + 12 : doc.page.margins.left;
+  const headerTextWidth = pageWidth - (headerX - doc.page.margins.left);
+
   // Skip address/contact lines entirely when blank instead of drawing an
-  // empty line — an unfilled Settings page shouldn't leave a gap above the
-  // divider that makes the logo look mis-aligned with the letterhead text.
+  // empty one — an unfilled Settings page shouldn't leave a gap that throws
+  // off vertical centering against the logo.
   const addressLine = [company.address, [company.city, company.state, company.pincode].filter(Boolean).join(', ')].filter(Boolean).join(' | ');
   const contactLine = [company.phone ? `Ph: ${company.phone}` : '', company.email || '', company.regNo ? `Reg No: ${company.regNo}` : ''].filter(Boolean).join('   |   ');
+
+  // Measure the text block's real height (1-3 lines depending on what's
+  // filled in) before drawing anything, so the logo and text can be
+  // centered against each other instead of both just top-aligning — with
+  // blank address/contact fields the text block is much shorter than a
+  // fixed-size logo, and top-alignment alone leaves the logo looking like
+  // it's floating low under the company name.
+  const nameHeight = doc.fontSize(17).font('Helvetica-Bold').heightOfString(company.name || 'VRV DHAN VAIBHAV FOUNDATION', { width: headerTextWidth });
+  doc.fontSize(9).font('Helvetica');
+  const addressHeight = addressLine ? doc.heightOfString(addressLine, { width: headerTextWidth }) : 0;
+  const contactHeight = contactLine ? doc.heightOfString(contactLine, { width: headerTextWidth }) : 0;
+  const textBlockHeight = nameHeight + addressHeight + contactHeight;
+
+  if (hasLogo) {
+    const logoY = headerStartY + Math.max(0, (textBlockHeight - logoSize) / 2);
+    try { doc.image(company.logoBuffer, doc.page.margins.left, logoY, { width: logoSize, height: logoSize }); } catch (e) { /* ignore bad image */ }
+  }
+
+  const textY = headerStartY + Math.max(0, (logoSize - textBlockHeight) / 2);
+  doc.fontSize(17).fillColor('#0f172a').font('Helvetica-Bold').text(company.name || 'VRV DHAN VAIBHAV FOUNDATION', headerX, textY, { width: headerTextWidth });
   doc.fontSize(9).fillColor('#475569').font('Helvetica');
-  if (addressLine) doc.text(addressLine);
-  if (contactLine) doc.text(contactLine);
-  // A logo shifts headerX right of the margin; reset before the rest of the
+  if (addressLine) doc.text(addressLine, headerX, doc.y, { width: headerTextWidth });
+  if (contactLine) doc.text(contactLine, headerX, doc.y, { width: headerTextWidth });
+
+  // A logo shifts x right of the margin; reset before the rest of the
   // document so that drift doesn't narrow every unrelated block below.
+  // Also make sure the divider clears whichever of the logo/text is taller.
   doc.x = doc.page.margins.left;
+  doc.y = Math.max(doc.y, headerStartY + logoSize);
   doc.moveDown(0.6);
   doc.moveTo(doc.page.margins.left, doc.y).lineTo(doc.page.width - doc.page.margins.right, doc.y).strokeColor('#cbd5e1').lineWidth(1).stroke();
   doc.moveDown(0.8);
