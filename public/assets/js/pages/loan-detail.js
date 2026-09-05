@@ -39,11 +39,17 @@ function renderSchedule() {
       <td class="num">${money(inst.principal)}</td>
       <td class="num">${money(inst.interest)}</td>
       <td class="num">${money(inst.balance)}</td>
-      <td><span class="badge ${inst.status}">${inst.status}</span>${inst.status === 'paid' ? `<div class="hint">on ${fmtDate(inst.paidDate)}</div>` : ''}</td>
+      <td>
+        <span class="badge ${inst.status}">${inst.status}</span>
+        ${inst.status === 'paid' ? `<div class="hint">on ${fmtDate(inst.paidDate)}</div>` : ''}
+        ${inst.status === 'partial' ? `<div class="hint">${money(inst.paidAmount)} of ${money(inst.emi)} on ${fmtDate(inst.paidDate)}</div>` : ''}
+      </td>
       <td class="actions-row">${inst.status === 'paid'
-        ? `<button class="btn small" data-unpay="${inst.seq}">Undo</button>`
-        : `<button class="btn small primary" data-pay="${inst.seq}">Mark Paid</button>
-           <button class="btn small" data-remind="${inst.seq}" title="Send WhatsApp reminder">WhatsApp</button>`}</td>
+        ? `<button class="btn small" data-unpay="${inst.seq}">Undo</button>
+           <a class="btn small" href="/api/loans/${loanId}/installments/${inst.seq}/receipt.pdf" target="_blank">Receipt</a>`
+        : `<button class="btn small primary" data-pay="${inst.seq}">${inst.status === 'partial' ? 'Record More' : 'Mark Paid'}</button>
+           <button class="btn small" data-remind="${inst.seq}" title="Send WhatsApp reminder">WhatsApp</button>
+           ${inst.status === 'partial' ? `<a class="btn small" href="/api/loans/${loanId}/installments/${inst.seq}/receipt.pdf" target="_blank">Receipt</a>` : ''}`}</td>
     </tr>
   `).join('');
 
@@ -70,11 +76,13 @@ function renderSchedule() {
 
 async function openPayModal(seq) {
   const inst = loan.schedule.find((s) => s.seq === seq);
+  const remaining = Math.max(0, Math.round((inst.emi - (inst.paidAmount || 0)) * 100) / 100);
   const html = `
-    <div class="field"><label>Amount Received (₹)</label><input type="number" id="p-amount" value="${inst.emi}" step="0.01"></div>
+    ${inst.paidAmount ? `<p class="hint" style="margin-bottom:10px;">${money(inst.paidAmount)} already recorded — ${money(remaining)} remaining on this installment.</p>` : ''}
+    <div class="field"><label>Amount Received (₹)</label><input type="number" id="p-amount" value="${remaining}" step="0.01"></div>
     <div class="field" style="margin-top:12px;"><label>Payment Date</label><input type="date" id="p-date" value="${todayISO()}"></div>
   `;
-  const result = await Modal.open(`Record Payment — Installment #${seq}`, html, { saveLabel: 'Mark Paid' });
+  const result = await Modal.open(`Record Payment — Installment #${seq}`, html, { saveLabel: 'Save Payment' });
   if (result !== 'save') return;
   const amount = document.getElementById('p-amount').value;
   const date = document.getElementById('p-date').value;
@@ -119,6 +127,17 @@ async function loadLoan() {
       await loadLoan();
     } catch (err) {
       toast('Failed: ' + err.message);
+    }
+  });
+
+  document.getElementById('btn-recalculate').addEventListener('click', async () => {
+    if (!confirm('Recalculate this schedule from the current principal, rate and tenure? This resets every recorded payment on this loan.')) return;
+    try {
+      await api.post(`/loans/${loanId}/recalculate`);
+      toast('Schedule recalculated');
+      await loadLoan();
+    } catch (e) {
+      toast('Failed: ' + e.message);
     }
   });
 

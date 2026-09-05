@@ -143,7 +143,7 @@ th.num, td.num { text-align: right; font-variant-numeric: tabular-nums; }
 .badge.active, .badge.due { background: var(--accent-soft); color: var(--accent); }
 .badge.closed, .badge.paid { background: var(--success-soft); color: #047857; }
 .badge.overdue, .badge.defaulted { background: var(--danger-soft); color: #b91c1c; }
-.badge.pending { background: var(--warning-soft); color: #92400e; }
+.badge.pending, .badge.partial { background: var(--warning-soft); color: #92400e; }
 
 button { font-family: inherit; }
 .btn { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--border); background: #fff; color: var(--text-main); padding: 8px 14px; border-radius: 9px; font-size: 13.5px; font-weight: 600; cursor: pointer; transition: all .15s ease; text-decoration: none; }

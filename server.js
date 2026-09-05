@@ -11,6 +11,8 @@ const customersRouter = require('./src/routes/customers');
 const loansRouter = require('./src/routes/loans');
 const dashboardRouter = require('./src/routes/dashboard');
 const configRouter = require('./src/routes/config');
+const activityRouter = require('./src/routes/activity');
+const reportsRouter = require('./src/routes/reports');
 
 const app = express();
 // Render terminates TLS at its own proxy in front of this app; trusting it
@@ -31,6 +33,8 @@ app.use('/api/customers', requireAuthApi, customersRouter);
 app.use('/api/loans', requireAuthApi, loansRouter);
 app.use('/api/dashboard', requireAuthApi, dashboardRouter);
 app.use('/api/config', requireAuthApi, configRouter);
+app.use('/api/activity', requireAuthApi, activityRouter);
+app.use('/api/reports', requireAuthApi, reportsRouter);
 
 app.use(requireAuthPage);
 app.use(express.static(path.join(__dirname, 'public')));

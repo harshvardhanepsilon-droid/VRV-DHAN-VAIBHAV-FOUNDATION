@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Activity Log — VRV Dhan Vaibhav Foundation</title>
+<link rel="stylesheet" href="assets/css/style.css" />
+<link rel="icon" type="image/png" href="assets/icons/favicon-32.png" />
+</head>
+<body>
+<div id="app-shell">
+  <div class="sidebar" id="sidebar"></div>
+  <div class="main">
+    <h1>Activity Log</h1>
+    <p class="pagesub">A running record of who changed what — customers, loans, payments and settings.</p>
+
+    <div class="panel">
+      <table>
+        <thead><tr><th>When</th><th>Type</th><th>Action</th><th>Details</th></tr></thead>
+        <tbody id="activity-body"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="assets/js/api.js"></script>
+<script src="assets/js/format.js"></script>
+<script src="assets/js/nav.js"></script>
+<script src="assets/js/pages/activity.js"></script>
+</body>
+</html>

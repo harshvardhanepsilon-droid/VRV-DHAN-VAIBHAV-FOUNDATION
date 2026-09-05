@@ -1,7 +1,8 @@
 const express = require('express');
 const multer = require('multer');
 const router = express.Router();
-const { pool } = require('../db');
+const { pool, logActivity } = require('../db');
+const { compressPhoto, compressDocument } = require('../utils/image');
 
 const imageFilter = (req, file, cb) => {
   if (!/^image\/(jpeg|png|webp|gif)$/.test(file.mimetype)) {
@@ -104,6 +105,7 @@ router.post('/', async (req, res) => {
       body.aadhaarNumber || '', body.panNumber || '', body.guarantorName || '', body.guarantorPhone || '', body.guarantorAddress || ''
     ]
   );
+  logActivity('customer', rows[0].id, 'created', `Added customer ${rows[0].name}`);
   res.status(201).json(toCustomerDTO(rows[0]));
 });
 
@@ -126,24 +128,29 @@ router.put('/:id', async (req, res) => {
     ]
   );
   if (!rows.length) return res.status(404).json({ error: 'Customer not found' });
+  logActivity('customer', rows[0].id, 'updated', `Updated KYC details for ${rows[0].name}`);
   res.json(toCustomerDTO(rows[0]));
 });
 
 router.delete('/:id', async (req, res) => {
   const { rows: loanCheck } = await pool.query('SELECT 1 FROM loans WHERE customer_id = $1 LIMIT 1', [req.params.id]);
   if (loanCheck.length) return res.status(400).json({ error: 'Cannot delete a customer with loan records. Close their loans first.' });
+  const { rows: existing } = await pool.query('SELECT name FROM customers WHERE id = $1', [req.params.id]);
   const { rowCount } = await pool.query('DELETE FROM customers WHERE id = $1', [req.params.id]);
   if (!rowCount) return res.status(404).json({ error: 'Customer not found' });
+  logActivity('customer', Number(req.params.id), 'deleted', `Deleted customer ${existing[0] ? existing[0].name : ''}`.trim());
   res.status(204).end();
 });
 
 router.post('/:id/photo', upload.single('photo'), async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+  const compressed = await compressPhoto(req.file.buffer);
   const { rows } = await pool.query(
     'UPDATE customers SET photo_data=$1, photo_mime=$2, updated_at=now() WHERE id=$3 RETURNING *',
-    [req.file.buffer, req.file.mimetype, req.params.id]
+    [compressed, 'image/jpeg', req.params.id]
   );
   if (!rows.length) return res.status(404).json({ error: 'Customer not found' });
+  logActivity('customer', rows[0].id, 'photo_uploaded', `Uploaded photo for ${rows[0].name}`);
   res.json(toCustomerDTO(rows[0]));
 });
 
@@ -153,18 +160,21 @@ router.post('/:id/documents', upload.fields([{ name: 'idFront', maxCount: 1 }, {
   const values = [];
   let i = 1;
   if (files.idFront && files.idFront[0]) {
+    const compressed = await compressDocument(files.idFront[0].buffer);
     sets.push(`id_front_data=$${i++}`, `id_front_mime=$${i++}`);
-    values.push(files.idFront[0].buffer, files.idFront[0].mimetype);
+    values.push(compressed, 'image/jpeg');
   }
   if (files.idBack && files.idBack[0]) {
+    const compressed = await compressDocument(files.idBack[0].buffer);
     sets.push(`id_back_data=$${i++}`, `id_back_mime=$${i++}`);
-    values.push(files.idBack[0].buffer, files.idBack[0].mimetype);
+    values.push(compressed, 'image/jpeg');
   }
   if (!sets.length) return res.status(400).json({ error: 'No file uploaded' });
   sets.push('updated_at=now()');
   values.push(req.params.id);
   const { rows } = await pool.query(`UPDATE customers SET ${sets.join(', ')} WHERE id=$${i} RETURNING *`, values);
   if (!rows.length) return res.status(404).json({ error: 'Customer not found' });
+  logActivity('customer', rows[0].id, 'documents_uploaded', `Uploaded ID document(s) for ${rows[0].name}`);
   res.json(toCustomerDTO(rows[0]));
 });
 

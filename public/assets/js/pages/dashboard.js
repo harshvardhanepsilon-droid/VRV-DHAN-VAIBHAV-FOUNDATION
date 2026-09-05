@@ -24,7 +24,7 @@
       <td>${escapeHtml(i.customerName)}</td>
       <td><a class="link" href="loan-detail.html?id=${i.loanId}">${escapeHtml(i.loanNo)}</a></td>
       <td>${fmtDate(i.dueDate)}</td>
-      <td class="num">${money(i.emi)}</td>
+      <td class="num">${money(i.remaining)}</td>
       <td><a class="btn small" href="loan-detail.html?id=${i.loanId}">Open</a></td>
     </tr>
   `).join('') : '<tr class="empty-row"><td colspan="5">No overdue EMIs. Nice work!</td></tr>';

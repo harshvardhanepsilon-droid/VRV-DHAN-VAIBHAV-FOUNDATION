@@ -221,7 +221,11 @@ function generateAgreementPdf({ loan, customer, company }) {
   if (doc.y > doc.page.height - 100) doc.addPage();
   doc.x = doc.page.margins.left;
   doc.font('Helvetica-Bold').fontSize(11).fillColor('#0f172a').text('3. Signatures');
-  doc.moveDown(0.9);
+  doc.moveDown(0.35);
+  doc.font('Helvetica').fontSize(9).fillColor('#1e293b')
+    .text(`Signed at: ${company.jurisdiction || company.city || '__________'}          Date: ${fmtDate(loan.disbursementDate)}`, doc.page.margins.left, doc.y, { width: pageWidth });
+  doc.x = doc.page.margins.left;
+  doc.moveDown(0.7);
 
   // Only print the designation as its own line when it actually differs from
   // the name line — with no signatory name on file, both used to fall back
@@ -255,6 +259,28 @@ function generateAgreementPdf({ loan, customer, company }) {
   });
   doc.x = doc.page.margins.left;
   doc.y = sigY + 4 + sigMaxHeight;
+
+  // ---- Witnesses ----
+  // Lending agreements conventionally carry two independent witness
+  // signatures alongside the parties' own, evidencing the signing actually
+  // took place; left blank for pen-and-ink completion when printed.
+  doc.moveDown(1.1);
+  if (doc.y > doc.page.height - 90) doc.addPage();
+  doc.x = doc.page.margins.left;
+  doc.font('Helvetica-Bold').fontSize(9.5).fillColor('#0f172a').text('Witnesses:');
+  doc.moveDown(0.8);
+
+  const witGap = 24;
+  const witColW = (pageWidth - witGap) / 2;
+  const witY = doc.y;
+  doc.fontSize(9).font('Helvetica').fillColor('#1e293b');
+  [0, 1].forEach((i) => {
+    const x = doc.page.margins.left + i * (witColW + witGap);
+    doc.moveTo(x, witY).lineTo(x + witColW, witY).strokeColor('#94a3b8').stroke();
+    doc.text(`Witness ${i + 1} — Name & Signature`, x, witY + 4, { width: witColW });
+  });
+  doc.x = doc.page.margins.left;
+  doc.y = witY + 4 + doc.heightOfString('Witness 1 — Name & Signature', { width: witColW });
 
   // ---- Annexure A: Repayment Schedule ----
   // Only start a fresh page if the schedule genuinely wouldn't fit below the

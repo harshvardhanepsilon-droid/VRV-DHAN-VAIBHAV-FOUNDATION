@@ -18,7 +18,7 @@ router.get('/', async (req, res) => {
 
   let changed = false;
   const flippedRows = loanRows.map((row) => {
-    const flipped = row.schedule.map((s) => (s.status === 'due' && s.dueDate < today ? { ...s, status: 'overdue' } : s));
+    const flipped = row.schedule.map((s) => ((s.status === 'due' || s.status === 'partial') && s.dueDate < today ? { ...s, status: 'overdue' } : s));
     if (JSON.stringify(flipped) !== JSON.stringify(row.schedule)) changed = true;
     return { ...row, schedule: flipped };
   });
@@ -31,8 +31,8 @@ router.get('/', async (req, res) => {
   const defaultedLoans = flippedRows.filter((l) => l.status === 'defaulted');
 
   const totalDisbursed = round2(flippedRows.reduce((s, l) => s + Number(l.principal), 0));
-  const totalCollected = round2(flippedRows.reduce((s, l) => s + l.schedule.reduce((s2, i) => s2 + (i.status === 'paid' ? i.paidAmount : 0), 0), 0));
-  const totalOutstanding = round2(flippedRows.reduce((s, l) => s + l.schedule.reduce((s2, i) => s2 + (i.status !== 'paid' ? i.emi : 0), 0), 0));
+  const totalCollected = round2(flippedRows.reduce((s, l) => s + l.schedule.reduce((s2, i) => s2 + Number(i.paidAmount || 0), 0), 0));
+  const totalOutstanding = round2(flippedRows.reduce((s, l) => s + l.schedule.reduce((s2, i) => s2 + (i.status !== 'paid' ? Math.max(0, i.emi - (i.paidAmount || 0)) : 0), 0), 0));
 
   const overdueInstallments = [];
   const upcomingInstallments = [];
@@ -42,7 +42,8 @@ router.get('/', async (req, res) => {
   flippedRows.forEach((l) => {
     l.schedule.forEach((s) => {
       if (s.status === 'overdue') {
-        overdueInstallments.push({ loanId: l.id, loanNo: l.loan_no, customerName: l.customer_name, ...s });
+        const remaining = round2(Math.max(0, s.emi - (s.paidAmount || 0)));
+        overdueInstallments.push({ loanId: l.id, loanNo: l.loan_no, customerName: l.customer_name, ...s, remaining });
       } else if (s.status === 'due' && s.dueDate <= in7DaysISO) {
         upcomingInstallments.push({ loanId: l.id, loanNo: l.loan_no, customerName: l.customer_name, ...s });
       }
@@ -67,7 +68,7 @@ router.get('/', async (req, res) => {
     totalCollected,
     totalOutstanding,
     overdueCount: overdueInstallments.length,
-    overdueAmount: round2(overdueInstallments.reduce((s, i) => s + i.emi, 0)),
+    overdueAmount: round2(overdueInstallments.reduce((s, i) => s + i.remaining, 0)),
     overdueInstallments: overdueInstallments.slice(0, 20),
     upcomingInstallments: upcomingInstallments.slice(0, 20),
     recentLoans

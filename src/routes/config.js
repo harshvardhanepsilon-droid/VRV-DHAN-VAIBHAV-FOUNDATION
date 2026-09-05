@@ -1,7 +1,8 @@
 const express = require('express');
 const multer = require('multer');
 const router = express.Router();
-const { pool } = require('../db');
+const { pool, logActivity } = require('../db');
+const { compressLogo } = require('../utils/image');
 
 const logoUpload = multer({
   storage: multer.memoryStorage(),
@@ -35,13 +36,16 @@ router.put('/company', async (req, res) => {
   if (body.defaultInterestRatePct !== undefined) company.defaultInterestRatePct = Number(body.defaultInterestRatePct) || 0;
   if (body.penaltyPct !== undefined) company.penaltyPct = Number(body.penaltyPct) || 0;
   await pool.query('UPDATE config SET company = $1 WHERE id = 1', [company]);
+  logActivity('config', null, 'updated', 'Updated company settings');
   const { rows: updated } = await pool.query('SELECT company, logo_data FROM config WHERE id = 1');
   res.json({ company: { ...updated[0].company, logoDataUrl: updated[0].logo_data ? '/api/config/logo' : '' } });
 });
 
 router.post('/company/logo', logoUpload.single('logo'), async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
-  await pool.query('UPDATE config SET logo_data = $1, logo_mime = $2 WHERE id = 1', [req.file.buffer, req.file.mimetype]);
+  const compressed = await compressLogo(req.file.buffer);
+  await pool.query('UPDATE config SET logo_data = $1, logo_mime = $2 WHERE id = 1', [compressed, 'image/png']);
+  logActivity('config', null, 'logo_updated', 'Updated company logo');
   const { rows } = await pool.query('SELECT company, logo_data FROM config WHERE id = 1');
   res.json({ company: { ...rows[0].company, logoDataUrl: '/api/config/logo' } });
 });

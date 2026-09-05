@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Reports — VRV Dhan Vaibhav Foundation</title>
+<link rel="stylesheet" href="assets/css/style.css" />
+<link rel="icon" type="image/png" href="assets/icons/favicon-32.png" />
+</head>
+<body>
+<div id="app-shell">
+  <div class="sidebar" id="sidebar"></div>
+  <div class="main">
+    <h1>Reports</h1>
+    <p class="pagesub">Portfolio totals and downloadable CSV exports.</p>
+
+    <div class="cards" id="stat-cards"></div>
+
+    <div class="panel">
+      <h2>Export CSV</h2>
+      <p class="hint" style="margin-bottom:14px;">Downloads reflect the current data at the time of export.</p>
+      <div class="actions-row">
+        <a class="btn primary" href="/api/reports/customers.csv">⬇ Customers</a>
+        <a class="btn primary" href="/api/reports/loans.csv">⬇ Loans</a>
+        <a class="btn primary" href="/api/reports/collections.csv">⬇ Collections (Payments)</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="assets/js/api.js"></script>
+<script src="assets/js/format.js"></script>
+<script src="assets/js/nav.js"></script>
+<script src="assets/js/pages/reports.js"></script>
+</body>
+</html>
