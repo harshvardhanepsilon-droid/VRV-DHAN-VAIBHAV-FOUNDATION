@@ -1,14 +1,8 @@
 node_modules/
 
-# Live customer data — never commit real KYC photos/documents or the database
-# to this public repo. The company logo (named "logo-*") is the one exception,
-# since that's a branding asset, not customer PII.
-uploads/photos/*
-uploads/documents/*
-!uploads/photos/.gitkeep
-!uploads/documents/.gitkeep
-!uploads/photos/logo-*
-src/data/db.json
+# Never commit local env files — DATABASE_URL holds real database credentials.
+.env
+.env.local
 
 .DS_Store
 Thumbs.db

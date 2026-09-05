@@ -1,24 +1,21 @@
 const express = require('express');
 const router = express.Router();
-const { readDB, writeDB, nextId, nextDocNumber } = require('../db');
+const { pool, nextDocNumber } = require('../db');
 const { buildSchedule, round2, toISODate } = require('../utils/emi');
 const { generateAgreementPdf } = require('../utils/agreementPdf');
 
-function annotateOverdue(loan) {
+function annotateOverdue(schedule) {
   const today = toISODate(new Date());
-  loan.schedule.forEach((inst) => {
-    if (inst.status === 'due' && inst.dueDate < today) inst.status = 'overdue';
-  });
-  return loan;
+  return schedule.map((inst) => (inst.status === 'due' && inst.dueDate < today ? { ...inst, status: 'overdue' } : inst));
 }
 
-function summarize(loan) {
-  const paid = loan.schedule.filter((s) => s.status === 'paid');
-  const pending = loan.schedule.filter((s) => s.status !== 'paid');
-  const overdue = loan.schedule.filter((s) => s.status === 'overdue');
+function summarize(schedule) {
+  const paid = schedule.filter((s) => s.status === 'paid');
+  const pending = schedule.filter((s) => s.status !== 'paid');
+  const overdue = schedule.filter((s) => s.status === 'overdue');
   return {
     installmentsPaid: paid.length,
-    installmentsTotal: loan.schedule.length,
+    installmentsTotal: schedule.length,
     amountPaid: round2(paid.reduce((s, i) => s + i.paidAmount, 0)),
     amountPending: round2(pending.reduce((s, i) => s + i.emi, 0)),
     overdueCount: overdue.length,
@@ -27,37 +24,74 @@ function summarize(loan) {
   };
 }
 
-router.get('/', (req, res) => {
-  const db = readDB();
-  let changed = false;
-  db.loans.forEach((l) => {
-    const before = JSON.stringify(l.schedule);
-    annotateOverdue(l);
-    if (JSON.stringify(l.schedule) !== before) changed = true;
-  });
-  if (changed) writeDB(db);
-  const loans = db.loans.map((l) => {
-    const customer = db.customers.find((c) => c.id === l.customerId);
-    return { ...l, customerName: customer ? customer.name : 'Unknown', ...summarize(l) };
-  }).sort((a, b) => b.id - a.id);
+function toLoanDTO(row, customerName) {
+  const schedule = annotateOverdue(row.schedule);
+  return {
+    id: row.id,
+    loanNo: row.loan_no,
+    customerId: row.customer_id,
+    customerName,
+    purpose: row.purpose,
+    principal: Number(row.principal),
+    interestRatePct: Number(row.interest_rate_pct),
+    interestType: row.interest_type,
+    tenureMonths: row.tenure_months,
+    disbursementDate: row.disbursement_date,
+    emiAmount: Number(row.emi_amount),
+    totalInterest: Number(row.total_interest),
+    totalPayable: Number(row.total_payable),
+    processingFee: Number(row.processing_fee),
+    collateral: row.collateral,
+    status: row.status,
+    schedule,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+    ...summarize(schedule)
+  };
+}
+
+async function persistOverdueFlips(client, loanId, schedule) {
+  const flipped = annotateOverdue(schedule);
+  if (JSON.stringify(flipped) !== JSON.stringify(schedule)) {
+    await client.query('UPDATE loans SET schedule = $1 WHERE id = $2', [JSON.stringify(flipped), loanId]);
+  }
+  return flipped;
+}
+
+router.get('/', async (req, res) => {
+  const { rows } = await pool.query(`
+    SELECT l.*, c.name AS customer_name FROM loans l
+    JOIN customers c ON c.id = l.customer_id
+    ORDER BY l.id DESC
+  `);
+  const loans = [];
+  for (const row of rows) {
+    row.schedule = await persistOverdueFlips(pool, row.id, row.schedule);
+    loans.push(toLoanDTO(row, row.customer_name));
+  }
   res.json(loans);
 });
 
-router.get('/:id', (req, res) => {
-  const db = readDB();
-  const loan = db.loans.find((l) => l.id === Number(req.params.id));
-  if (!loan) return res.status(404).json({ error: 'Loan not found' });
-  annotateOverdue(loan);
-  writeDB(db);
-  const customer = db.customers.find((c) => c.id === loan.customerId);
-  res.json({ ...loan, customer, ...summarize(loan) });
+router.get('/:id', async (req, res) => {
+  const { rows } = await pool.query('SELECT * FROM loans WHERE id = $1', [req.params.id]);
+  if (!rows.length) return res.status(404).json({ error: 'Loan not found' });
+  const loanRow = rows[0];
+  loanRow.schedule = await persistOverdueFlips(pool, loanRow.id, loanRow.schedule);
+  const { rows: custRows } = await pool.query('SELECT * FROM customers WHERE id = $1', [loanRow.customer_id]);
+  const customer = custRows[0] ? {
+    id: custRows[0].id,
+    name: custRows[0].name,
+    fatherOrSpouseName: custRows[0].father_or_spouse_name,
+    phone: custRows[0].phone,
+    photoPath: custRows[0].photo_data ? `/api/customers/${custRows[0].id}/photo` : ''
+  } : null;
+  res.json({ ...toLoanDTO(loanRow, customer ? customer.name : 'Unknown'), customer });
 });
 
-router.post('/', (req, res) => {
-  const db = readDB();
+router.post('/', async (req, res) => {
   const body = req.body || {};
-  const customer = db.customers.find((c) => c.id === Number(body.customerId));
-  if (!customer) return res.status(400).json({ error: 'Select a valid customer' });
+  const { rows: custRows } = await pool.query('SELECT id FROM customers WHERE id = $1', [body.customerId]);
+  if (!custRows.length) return res.status(400).json({ error: 'Select a valid customer' });
 
   const principal = Number(body.principal);
   const interestRatePct = Number(body.interestRatePct);
@@ -70,112 +104,124 @@ router.post('/', (req, res) => {
   if (!tenureMonths || tenureMonths <= 0) return res.status(400).json({ error: 'Tenure (months) must be greater than 0' });
 
   const { schedule, emiAmount, totalInterest, totalPayable } = buildSchedule({ principal, interestRatePct, tenureMonths, interestType, disbursementDate });
+  const loanNo = await nextDocNumber(pool, 'loan', 'VDV/LN', disbursementDate);
 
-  const now = new Date().toISOString();
-  const loan = {
-    id: nextId(db, 'loans'),
-    loanNo: nextDocNumber(db, 'loan', 'VDV/LN', disbursementDate),
-    customerId: customer.id,
-    purpose: body.purpose || '',
-    principal: round2(principal),
-    interestRatePct,
-    interestType,
-    tenureMonths,
-    disbursementDate,
-    emiAmount,
-    totalInterest,
-    totalPayable,
-    processingFee: Number(body.processingFee) || 0,
-    collateral: body.collateral || '',
-    status: 'active',
-    schedule,
-    createdAt: now,
-    updatedAt: now
-  };
-  db.loans.push(loan);
-  writeDB(db);
-  res.status(201).json(loan);
+  const { rows } = await pool.query(
+    `INSERT INTO loans (
+      loan_no, customer_id, purpose, principal, interest_rate_pct, interest_type, tenure_months,
+      disbursement_date, emi_amount, total_interest, total_payable, processing_fee, collateral, status, schedule
+    ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,'active',$14)
+    RETURNING *`,
+    [
+      loanNo, body.customerId, body.purpose || '', round2(principal), interestRatePct, interestType, tenureMonths,
+      disbursementDate, emiAmount, totalInterest, totalPayable, Number(body.processingFee) || 0, body.collateral || '',
+      JSON.stringify(schedule)
+    ]
+  );
+  const { rows: custName } = await pool.query('SELECT name FROM customers WHERE id = $1', [body.customerId]);
+  res.status(201).json(toLoanDTO(rows[0], custName[0].name));
 });
 
-router.put('/:id', (req, res) => {
-  const db = readDB();
-  const loan = db.loans.find((l) => l.id === Number(req.params.id));
-  if (!loan) return res.status(404).json({ error: 'Loan not found' });
+router.put('/:id', async (req, res) => {
   const body = req.body || {};
-  if (body.status && ['active', 'closed', 'defaulted'].includes(body.status)) loan.status = body.status;
-  if (body.purpose !== undefined) loan.purpose = body.purpose;
-  if (body.collateral !== undefined) loan.collateral = body.collateral;
-  loan.updatedAt = new Date().toISOString();
-  writeDB(db);
-  res.json(loan);
+  const fields = [];
+  const values = [];
+  let i = 1;
+  if (body.status && ['active', 'closed', 'defaulted'].includes(body.status)) { fields.push(`status=$${i++}`); values.push(body.status); }
+  if (body.purpose !== undefined) { fields.push(`purpose=$${i++}`); values.push(body.purpose); }
+  if (body.collateral !== undefined) { fields.push(`collateral=$${i++}`); values.push(body.collateral); }
+  fields.push('updated_at=now()');
+  values.push(req.params.id);
+  const { rows } = await pool.query(`UPDATE loans SET ${fields.join(', ')} WHERE id=$${i} RETURNING *`, values);
+  if (!rows.length) return res.status(404).json({ error: 'Loan not found' });
+  const { rows: custName } = await pool.query('SELECT name FROM customers WHERE id = $1', [rows[0].customer_id]);
+  res.json(toLoanDTO(rows[0], custName[0] ? custName[0].name : 'Unknown'));
 });
 
-router.delete('/:id', (req, res) => {
-  const db = readDB();
-  const idx = db.loans.findIndex((l) => l.id === Number(req.params.id));
-  if (idx === -1) return res.status(404).json({ error: 'Loan not found' });
-  db.loans.splice(idx, 1);
-  writeDB(db);
+router.delete('/:id', async (req, res) => {
+  const { rowCount } = await pool.query('DELETE FROM loans WHERE id = $1', [req.params.id]);
+  if (!rowCount) return res.status(404).json({ error: 'Loan not found' });
   res.status(204).end();
 });
 
-// Recalculate the schedule for an active loan (e.g. after a data-entry fix); any recorded payments are lost.
-router.post('/:id/recalculate', (req, res) => {
-  const db = readDB();
-  const loan = db.loans.find((l) => l.id === Number(req.params.id));
-  if (!loan) return res.status(404).json({ error: 'Loan not found' });
-  const { schedule, emiAmount, totalInterest, totalPayable } = buildSchedule(loan);
-  loan.schedule = schedule;
-  loan.emiAmount = emiAmount;
-  loan.totalInterest = totalInterest;
-  loan.totalPayable = totalPayable;
-  loan.updatedAt = new Date().toISOString();
-  writeDB(db);
-  res.json(loan);
+router.post('/:id/recalculate', async (req, res) => {
+  const { rows } = await pool.query('SELECT * FROM loans WHERE id = $1', [req.params.id]);
+  if (!rows.length) return res.status(404).json({ error: 'Loan not found' });
+  const loan = rows[0];
+  const { schedule, emiAmount, totalInterest, totalPayable } = buildSchedule({
+    principal: Number(loan.principal), interestRatePct: Number(loan.interest_rate_pct),
+    tenureMonths: loan.tenure_months, interestType: loan.interest_type, disbursementDate: loan.disbursement_date
+  });
+  const { rows: updated } = await pool.query(
+    `UPDATE loans SET schedule=$1, emi_amount=$2, total_interest=$3, total_payable=$4, updated_at=now() WHERE id=$5 RETURNING *`,
+    [JSON.stringify(schedule), emiAmount, totalInterest, totalPayable, req.params.id]
+  );
+  const { rows: custName } = await pool.query('SELECT name FROM customers WHERE id = $1', [updated[0].customer_id]);
+  res.json(toLoanDTO(updated[0], custName[0].name));
 });
 
-router.post('/:id/installments/:seq/pay', (req, res) => {
-  const db = readDB();
-  const loan = db.loans.find((l) => l.id === Number(req.params.id));
-  if (!loan) return res.status(404).json({ error: 'Loan not found' });
-  const inst = loan.schedule.find((s) => s.seq === Number(req.params.seq));
-  if (!inst) return res.status(404).json({ error: 'Installment not found' });
+router.post('/:id/installments/:seq/pay', async (req, res) => {
+  const { rows } = await pool.query('SELECT * FROM loans WHERE id = $1', [req.params.id]);
+  if (!rows.length) return res.status(404).json({ error: 'Loan not found' });
+  const loan = rows[0];
   const body = req.body || {};
-  inst.status = 'paid';
-  inst.paidDate = body.paidDate || toISODate(new Date());
-  inst.paidAmount = body.paidAmount !== undefined ? round2(Number(body.paidAmount)) : inst.emi;
-  loan.updatedAt = new Date().toISOString();
-  if (loan.schedule.every((s) => s.status === 'paid')) loan.status = 'closed';
-  writeDB(db);
-  res.json(loan);
+  const seq = Number(req.params.seq);
+  const schedule = loan.schedule.map((inst) => inst.seq === seq
+    ? { ...inst, status: 'paid', paidDate: body.paidDate || toISODate(new Date()), paidAmount: body.paidAmount !== undefined ? round2(Number(body.paidAmount)) : inst.emi }
+    : inst);
+  const allPaid = schedule.every((s) => s.status === 'paid');
+  const { rows: updated } = await pool.query(
+    'UPDATE loans SET schedule=$1, status=$2, updated_at=now() WHERE id=$3 RETURNING *',
+    [JSON.stringify(schedule), allPaid ? 'closed' : loan.status, req.params.id]
+  );
+  const { rows: custName } = await pool.query('SELECT name FROM customers WHERE id = $1', [updated[0].customer_id]);
+  res.json(toLoanDTO(updated[0], custName[0].name));
 });
 
-router.post('/:id/installments/:seq/unpay', (req, res) => {
-  const db = readDB();
-  const loan = db.loans.find((l) => l.id === Number(req.params.id));
-  if (!loan) return res.status(404).json({ error: 'Loan not found' });
-  const inst = loan.schedule.find((s) => s.seq === Number(req.params.seq));
-  if (!inst) return res.status(404).json({ error: 'Installment not found' });
-  inst.status = 'due';
-  inst.paidDate = null;
-  inst.paidAmount = 0;
-  if (loan.status === 'closed') loan.status = 'active';
-  annotateOverdue(loan);
-  loan.updatedAt = new Date().toISOString();
-  writeDB(db);
-  res.json(loan);
+router.post('/:id/installments/:seq/unpay', async (req, res) => {
+  const { rows } = await pool.query('SELECT * FROM loans WHERE id = $1', [req.params.id]);
+  if (!rows.length) return res.status(404).json({ error: 'Loan not found' });
+  const loan = rows[0];
+  const seq = Number(req.params.seq);
+  const schedule = annotateOverdue(loan.schedule.map((inst) => inst.seq === seq
+    ? { ...inst, status: 'due', paidDate: null, paidAmount: 0 }
+    : inst));
+  const { rows: updated } = await pool.query(
+    'UPDATE loans SET schedule=$1, status=$2, updated_at=now() WHERE id=$3 RETURNING *',
+    [JSON.stringify(schedule), loan.status === 'closed' ? 'active' : loan.status, req.params.id]
+  );
+  const { rows: custName } = await pool.query('SELECT name FROM customers WHERE id = $1', [updated[0].customer_id]);
+  res.json(toLoanDTO(updated[0], custName[0].name));
 });
 
 router.get('/:id/agreement.pdf', async (req, res) => {
-  const db = readDB();
-  const loan = db.loans.find((l) => l.id === Number(req.params.id));
-  if (!loan) return res.status(404).json({ error: 'Loan not found' });
-  const customer = db.customers.find((c) => c.id === loan.customerId);
-  if (!customer) return res.status(400).json({ error: 'Loan has no linked customer' });
+  const { rows } = await pool.query('SELECT * FROM loans WHERE id = $1', [req.params.id]);
+  if (!rows.length) return res.status(404).json({ error: 'Loan not found' });
+  const loanRow = rows[0];
+  const { rows: custRows } = await pool.query('SELECT * FROM customers WHERE id = $1', [loanRow.customer_id]);
+  if (!custRows.length) return res.status(400).json({ error: 'Loan has no linked customer' });
+  const c = custRows[0];
+  const customer = {
+    name: c.name, fatherOrSpouseName: c.father_or_spouse_name, phone: c.phone, altPhone: c.alt_phone,
+    address: c.address, city: c.city, state: c.state, pincode: c.pincode,
+    aadhaarNumber: c.aadhaar_number, panNumber: c.pan_number, occupation: c.occupation, monthlyIncome: c.monthly_income,
+    guarantorName: c.guarantor_name, photoBuffer: c.photo_data || null
+  };
+  const { rows: configRows } = await pool.query('SELECT company, logo_data FROM config WHERE id = 1');
+  const company = { ...configRows[0].company, logoBuffer: configRows[0].logo_data || null };
+
+  const loan = {
+    loanNo: loanRow.loan_no, principal: Number(loanRow.principal), interestRatePct: Number(loanRow.interest_rate_pct),
+    interestType: loanRow.interest_type, tenureMonths: loanRow.tenure_months, disbursementDate: loanRow.disbursement_date,
+    emiAmount: Number(loanRow.emi_amount), totalInterest: Number(loanRow.total_interest), totalPayable: Number(loanRow.total_payable),
+    processingFee: Number(loanRow.processing_fee), purpose: loanRow.purpose, collateral: loanRow.collateral,
+    schedule: loanRow.schedule
+  };
+
   try {
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="Loan-Agreement-${loan.loanNo.replace(/\//g, '-')}.pdf"`);
-    generateAgreementPdf({ loan, customer, company: db.config.company }).pipe(res);
+    generateAgreementPdf({ loan, customer, company }).pipe(res);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

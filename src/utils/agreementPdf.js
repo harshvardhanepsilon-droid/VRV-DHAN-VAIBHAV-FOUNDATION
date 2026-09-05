@@ -1,14 +1,4 @@
 const PDFDocument = require('pdfkit');
-const path = require('path');
-const fs = require('fs');
-
-const PROJECT_ROOT = path.join(__dirname, '..', '..');
-
-function absUpload(relPath) {
-  if (!relPath) return null;
-  const full = path.join(PROJECT_ROOT, relPath);
-  return fs.existsSync(full) ? full : null;
-}
 
 function fmtMoney(n) {
   return 'Rs. ' + Number(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -55,10 +45,9 @@ function generateAgreementPdf({ loan, customer, company }) {
   const pageWidth = doc.page.width - doc.page.margins.left - doc.page.margins.right;
 
   // ---- Letterhead ----
-  const logoPath = absUpload(company.logoDataUrl && company.logoDataUrl.startsWith('/uploads') ? company.logoDataUrl : null);
   let headerX = doc.page.margins.left;
-  if (logoPath) {
-    try { doc.image(logoPath, headerX, doc.y, { width: 48, height: 48 }); headerX += 58; } catch (e) { /* ignore bad image */ }
+  if (company.logoBuffer) {
+    try { doc.image(company.logoBuffer, headerX, doc.y, { width: 48, height: 48 }); headerX += 58; } catch (e) { /* ignore bad image */ }
   }
   doc.fontSize(17).fillColor('#0f172a').font('Helvetica-Bold')
     .text(company.name || 'VRV DHAN VAIBHAV FOUNDATION', headerX, doc.y, { width: pageWidth - (headerX - doc.page.margins.left) });
@@ -81,8 +70,7 @@ function generateAgreementPdf({ loan, customer, company }) {
   const introY = doc.y;
   // Reserve space on the right for the borrower photo (drawn below, 70pt wide)
   // so these opening lines don't wrap under it.
-  const photoPath = absUpload(customer.photoPath);
-  const introWidth = photoPath ? pageWidth - 80 : pageWidth;
+  const introWidth = customer.photoBuffer ? pageWidth - 80 : pageWidth;
   doc.text(
     `This Loan Agreement ("Agreement") is made and executed on ${fmtDate(loan.disbursementDate)}, between:`,
     doc.page.margins.left, doc.y, { width: introWidth }
@@ -103,8 +91,8 @@ function generateAgreementPdf({ loan, customer, company }) {
   doc.text('The Lender and the Borrower shall collectively be referred to as the "Parties" and each individually as a "Party".', doc.page.margins.left, doc.y, { width: pageWidth });
 
   // Borrower photo, top-right of the parties block
-  if (photoPath) {
-    try { doc.image(photoPath, doc.page.width - doc.page.margins.right - 70, introY, { width: 70, height: 82, fit: [70, 82] }); } catch (e) { /* ignore */ }
+  if (customer.photoBuffer) {
+    try { doc.image(customer.photoBuffer, doc.page.width - doc.page.margins.right - 70, introY, { width: 70, height: 82, fit: [70, 82] }); } catch (e) { /* ignore */ }
   }
 
   doc.moveDown(0.9);
