@@ -6,6 +6,10 @@ async function apiRequest(method, path, body, isForm) {
     headers: (body && !isForm) ? { 'Content-Type': 'application/json' } : undefined,
     body: isForm ? body : (body ? JSON.stringify(body) : undefined)
   });
+  if (res.status === 401) {
+    window.location.href = 'login.html?next=' + encodeURIComponent(window.location.pathname + window.location.search);
+    throw new Error('Not authenticated');
+  }
   if (!res.ok) {
     let message = res.statusText;
     try {

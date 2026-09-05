@@ -3,6 +3,8 @@ const NAV_ITEMS = [
   { key: 'customers', label: 'Customers', href: 'customers.html' },
   { key: 'loans', label: 'Loans', href: 'loans.html' },
   { key: 'overdue', label: 'Overdue EMIs', href: 'overdue.html' },
+  { key: 'reports', label: 'Reports', href: 'reports.html' },
+  { key: 'activity', label: 'Activity Log', href: 'activity.html' },
   { key: 'settings', label: 'Settings', href: 'settings.html' }
 ];
 
@@ -21,7 +23,14 @@ function renderSidebar(activeKey, companyName, logoUrl) {
     <div class="brand-row">${logoImg}<div class="brand">${name}</div></div>
     <div class="brand-caption">Loan &amp; KYC Management</div>
     ${NAV_ITEMS.map((item) => `<a class="navbtn${item.key === activeKey ? ' active' : ''}" href="${item.href}">${item.label}</a>`).join('')}
+    <button class="navbtn navbtn-logout" id="btn-logout" type="button">Log Out</button>
   `;
+
+  const logoutBtn = document.getElementById('btn-logout');
+  if (logoutBtn) logoutBtn.addEventListener('click', async () => {
+    try { await fetch('/api/auth/logout', { method: 'POST' }); } catch (e) { /* ignore */ }
+    window.location.href = 'login.html';
+  });
 
   if (!document.getElementById('menu-toggle')) {
     const toggle = document.createElement('button');

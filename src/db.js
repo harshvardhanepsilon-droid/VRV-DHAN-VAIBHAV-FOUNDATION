@@ -92,6 +92,15 @@ CREATE TABLE IF NOT EXISTS counters (
   key TEXT PRIMARY KEY,
   value INT NOT NULL DEFAULT 0
 );
+
+CREATE TABLE IF NOT EXISTS activity_log (
+  id SERIAL PRIMARY KEY,
+  entity_type TEXT NOT NULL,
+  entity_id INT,
+  action TEXT NOT NULL,
+  summary TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
 `;
 
 let readyPromise = null;
@@ -124,4 +133,13 @@ async function nextDocNumber(client, counterKey, prefix, date) {
   return `${prefix}/${year}/${seq}`;
 }
 
-module.exports = { pool, ensureSchema, nextDocNumber, DEFAULT_COMPANY };
+// Fire-and-forget: a logging failure should never break the action it's
+// describing, so errors here are swallowed rather than propagated.
+function logActivity(entityType, entityId, action, summary) {
+  pool.query(
+    'INSERT INTO activity_log (entity_type, entity_id, action, summary) VALUES ($1,$2,$3,$4)',
+    [entityType, entityId, action, summary]
+  ).catch((err) => console.error('activity log failed:', err.message));
+}
+
+module.exports = { pool, ensureSchema, nextDocNumber, logActivity, DEFAULT_COMPANY };

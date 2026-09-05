@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Sign In — VRV Dhan Vaibhav Foundation</title>
+<link rel="stylesheet" href="assets/css/style.css" />
+<link rel="icon" type="image/png" href="assets/icons/favicon-32.png" />
+<style>
+  body { display: flex; align-items: center; justify-content: center; min-height: 100vh; background: linear-gradient(190deg, #16213e 0%, #0a1226 100%); }
+  .login-card { background: #fff; border-radius: 16px; padding: 36px 34px; width: 100%; max-width: 360px; box-shadow: 0 20px 50px rgba(6,10,26,0.35); }
+  .login-logo { width: 44px; height: 44px; display: block; margin: 0 auto 14px; }
+  .login-title { text-align: center; font-size: 18px; font-weight: 800; color: var(--text-main); margin: 0 0 2px; }
+  .login-sub { text-align: center; font-size: 12.5px; color: var(--text-muted); margin: 0 0 24px; }
+  .login-field { margin-bottom: 16px; }
+  .login-field label { display: block; font-size: 12.5px; font-weight: 600; color: var(--text-muted); margin-bottom: 5px; }
+  .login-field input { width: 100%; font-size: 14px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; }
+  .login-field input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+  .login-btn { width: 100%; padding: 11px; border: none; border-radius: 9px; background: linear-gradient(120deg, var(--accent), #0a1226); color: #fff; font-size: 14px; font-weight: 700; cursor: pointer; }
+  .login-btn:disabled { opacity: .6; cursor: not-allowed; }
+  .login-error { color: var(--danger); font-size: 12.5px; margin-top: 12px; text-align: center; min-height: 16px; }
+</style>
+</head>
+<body>
+<div class="login-card">
+  <svg class="login-logo" viewBox="0 0 240 240" xmlns="http://www.w3.org/2000/svg">
+    <polyline points="40,55 120,175 200,55" fill="none" stroke="#152451" stroke-width="30" stroke-linecap="round" stroke-linejoin="round"/>
+    <polyline points="82,58 120,128 158,58" fill="none" stroke="#c9a12b" stroke-width="24" stroke-linecap="round" stroke-linejoin="round"/>
+  </svg>
+  <div class="login-title">VRV Dhan Vaibhav Foundation</div>
+  <p class="login-sub">Internal Loan System — Sign in to continue</p>
+  <form id="login-form">
+    <div class="login-field">
+      <label for="f-password">Password</label>
+      <input type="password" id="f-password" autocomplete="current-password" autofocus />
+    </div>
+    <button type="submit" class="login-btn" id="btn-submit">Sign In</button>
+    <div class="login-error" id="error"></div>
+  </form>
+</div>
+<script src="assets/js/pages/login.js"></script>
+</body>
+</html>
