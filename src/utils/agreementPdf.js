@@ -40,7 +40,7 @@ function numberToIndianWords(num) {
 }
 
 function generateAgreementPdf({ loan, customer, company }) {
-  const doc = new PDFDocument({ size: 'A4', margin: 44, bufferPages: true });
+  const doc = new PDFDocument({ size: 'A4', margin: 36, bufferPages: true });
 
   const pageWidth = doc.page.width - doc.page.margins.left - doc.page.margins.right;
 
@@ -85,13 +85,13 @@ function generateAgreementPdf({ loan, customer, company }) {
   // Also make sure the divider clears whichever of the logo/text is taller.
   doc.x = doc.page.margins.left;
   doc.y = Math.max(doc.y, headerStartY + logoSize);
-  doc.moveDown(0.6);
+  doc.moveDown(0.4);
   doc.moveTo(doc.page.margins.left, doc.y).lineTo(doc.page.width - doc.page.margins.right, doc.y).strokeColor('#cbd5e1').lineWidth(1).stroke();
-  doc.moveDown(0.8);
+  doc.moveDown(0.5);
 
   doc.fontSize(14).fillColor('#0f172a').font('Helvetica-Bold').text('LOAN AGREEMENT', { align: 'center' });
   doc.fontSize(9).fillColor('#64748b').font('Helvetica').text(`Loan No: ${loan.loanNo}    |    Agreement Date: ${fmtDate(loan.disbursementDate)}`, { align: 'center' });
-  doc.moveDown(0.9);
+  doc.moveDown(0.6);
 
   // ---- Parties ----
   doc.fontSize(10).fillColor('#1e293b').font('Helvetica');
@@ -108,18 +108,18 @@ function generateAgreementPdf({ loan, customer, company }) {
     `This Loan Agreement ("Agreement") is made and executed on ${fmtDate(loan.disbursementDate)}, between:`,
     doc.page.margins.left, doc.y, { width: widthFor() }
   );
-  doc.moveDown(0.5);
+  doc.moveDown(0.35);
   doc.x = doc.page.margins.left;
   doc.font('Helvetica-Bold').text(`${company.name || 'VRV DHAN VAIBHAV FOUNDATION'}`, doc.page.margins.left, doc.y, { continued: true, width: widthFor() }).font('Helvetica')
     .text(`, having its office at ${[company.address, company.city, company.state, company.pincode].filter(Boolean).join(', ') || 'the address on record'} (hereinafter referred to as the "LENDER"),`, { width: widthFor() });
-  doc.moveDown(0.3);
+  doc.moveDown(0.2);
   doc.x = doc.page.margins.left;
   doc.text('AND', doc.page.margins.left, doc.y, { width: widthFor() });
-  doc.moveDown(0.3);
+  doc.moveDown(0.2);
   doc.x = doc.page.margins.left;
   doc.font('Helvetica-Bold').text(`${customer.name}`, doc.page.margins.left, doc.y, { continued: true, width: widthFor() }).font('Helvetica')
     .text(`, S/o D/o W/o ${customer.fatherOrSpouseName || '__________'}, residing at ${[customer.address, customer.city, customer.state, customer.pincode].filter(Boolean).join(', ') || '__________'} (hereinafter referred to as the "BORROWER").`, { width: widthFor() });
-  doc.moveDown(0.3);
+  doc.moveDown(0.2);
   doc.x = doc.page.margins.left;
   doc.text('The Lender and the Borrower shall collectively be referred to as the "Parties" and each individually as a "Party".', doc.page.margins.left, doc.y, { width: widthFor() });
 
@@ -143,13 +143,13 @@ function generateAgreementPdf({ loan, customer, company }) {
     } catch (e) { /* ignore bad image */ }
   }
 
-  doc.moveDown(0.9);
-  doc.moveTo(doc.page.margins.left, doc.y).lineTo(doc.page.width - doc.page.margins.right, doc.y).strokeColor('#e2e8f0').lineWidth(1).stroke();
   doc.moveDown(0.6);
+  doc.moveTo(doc.page.margins.left, doc.y).lineTo(doc.page.width - doc.page.margins.right, doc.y).strokeColor('#e2e8f0').lineWidth(1).stroke();
+  doc.moveDown(0.45);
 
   // ---- Borrower / Loan detail table ----
   doc.font('Helvetica-Bold').fontSize(11).fillColor('#0f172a').text('1. Borrower & Loan Details');
-  doc.moveDown(0.3);
+  doc.moveDown(0.25);
 
   const detailRows = [
     ['Borrower Name', customer.name, 'Father/Spouse Name', customer.fatherOrSpouseName || '-'],
@@ -165,31 +165,32 @@ function generateAgreementPdf({ loan, customer, company }) {
   ];
 
   const col1W = 155, col2W = pageWidth / 2 - col1W, col3W = 155, col4W = pageWidth / 2 - col3W;
-  doc.fontSize(9);
+  const rowH = 14.5;
+  doc.fontSize(8.7);
   detailRows.forEach((row, i) => {
     const y = doc.y;
-    if (i % 2 === 0) doc.rect(doc.page.margins.left, y - 2, pageWidth, 16).fill('#f8fafc').fillColor('#1e293b');
+    if (i % 2 === 0) doc.rect(doc.page.margins.left, y - 1.5, pageWidth, rowH).fill('#f8fafc').fillColor('#1e293b');
     doc.fillColor('#475569').font('Helvetica-Bold').text(row[0], doc.page.margins.left + 4, y, { width: col1W, continued: false });
     doc.fillColor('#0f172a').font('Helvetica').text(row[1], doc.page.margins.left + col1W, y, { width: col2W });
     doc.fillColor('#475569').font('Helvetica-Bold').text(row[2], doc.page.margins.left + col1W + col2W + 8, y, { width: col3W });
     doc.fillColor('#0f172a').font('Helvetica').text(row[3], doc.page.margins.left + col1W + col2W + col3W + 8, y, { width: col4W - 8 });
-    doc.y = y + 16;
+    doc.y = y + rowH;
   });
 
   // The per-cell writes above leave doc.x parked at the last column's x —
   // reset it to the margin so the flowed text below wraps at full page width
   // instead of a narrow leftover column.
   doc.x = doc.page.margins.left;
-  doc.moveDown(0.5);
-  doc.font('Helvetica').fontSize(9.5).fillColor('#1e293b')
+  doc.moveDown(0.3);
+  doc.font('Helvetica').fontSize(9.3).fillColor('#1e293b')
     .text(`Amount in Words: Rupees ${numberToIndianWords(loan.principal)} Only.`, doc.page.margins.left, doc.y, { width: pageWidth });
 
   // ---- Terms & Conditions ----
   doc.x = doc.page.margins.left;
-  doc.moveDown(0.8);
+  doc.moveDown(0.5);
   doc.font('Helvetica-Bold').fontSize(11).fillColor('#0f172a').text('2. Terms & Conditions');
-  doc.moveDown(0.3);
-  doc.font('Helvetica').fontSize(9.3).fillColor('#1e293b');
+  doc.moveDown(0.2);
+  doc.font('Helvetica').fontSize(8.8).fillColor('#1e293b');
   const terms = [
     `Repayment: The Borrower agrees to repay the loan in ${loan.tenureMonths} equal monthly installments (EMI) of ${fmtMoney(loan.emiAmount)} each, as per the repayment schedule attached as Annexure A, starting one month from the date of disbursement.`,
     `Mode of Payment: EMI shall be paid on or before the due date each month, through cash, bank transfer, or any other mode acceptable to the Lender.`,
@@ -204,17 +205,17 @@ function generateAgreementPdf({ loan, customer, company }) {
   ];
   terms.forEach((t, i) => {
     doc.x = doc.page.margins.left;
-    doc.font('Helvetica-Bold').text(`${i + 1}. `, doc.page.margins.left, doc.y, { continued: true, width: pageWidth }).font('Helvetica').text(t, { width: pageWidth });
+    doc.font('Helvetica-Bold').fontSize(8.8).text(`${i + 1}. `, doc.page.margins.left, doc.y, { continued: true, width: pageWidth }).font('Helvetica').text(t, { width: pageWidth });
     doc.x = doc.page.margins.left;
-    doc.moveDown(0.35);
+    doc.moveDown(0.2);
   });
 
   // ---- Signatures ----
-  doc.moveDown(0.6);
-  if (doc.y > doc.page.height - 150) doc.addPage();
+  doc.moveDown(0.4);
+  if (doc.y > doc.page.height - 115) doc.addPage();
   doc.x = doc.page.margins.left;
   doc.font('Helvetica-Bold').fontSize(11).fillColor('#0f172a').text('3. Signatures');
-  doc.moveDown(1.1);
+  doc.moveDown(0.8);
   const sigY = doc.y;
   const sigColW = pageWidth / 2 - 10;
   doc.moveTo(doc.page.margins.left, sigY).lineTo(doc.page.margins.left + sigColW, sigY).strokeColor('#94a3b8').stroke();
@@ -235,7 +236,7 @@ function generateAgreementPdf({ loan, customer, company }) {
   doc.text(`${customer.name}\n(BORROWER)`, doc.page.margins.left + pageWidth - sigColW, sigY + 4, { width: sigColW });
 
   if (customer.guarantorName) {
-    doc.moveDown(1.3);
+    doc.moveDown(1.0);
     const gY = doc.y;
     doc.moveTo(doc.page.margins.left, gY).lineTo(doc.page.margins.left + sigColW, gY).strokeColor('#94a3b8').stroke();
     doc.fontSize(9).text(`${customer.guarantorName}\n(GUARANTOR)`, doc.page.margins.left, gY + 4, { width: sigColW });
