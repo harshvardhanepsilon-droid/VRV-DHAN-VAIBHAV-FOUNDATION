@@ -4,6 +4,9 @@
   "private": true,
   "description": "Loan CRM for VRV Dhan Vaibhav Foundation: customer KYC, EMI/interest calculation, repayment tracking, and agreement PDF generation.",
   "main": "server.js",
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
     "start": "node server.js",
     "dev": "node server.js"

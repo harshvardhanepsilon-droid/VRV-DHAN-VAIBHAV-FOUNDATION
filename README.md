@@ -1,5 +1,10 @@
 # VRV Dhan Vaibhav Foundation — Loan CRM
 
+![Node.js](https://img.shields.io/badge/node-%3E%3D18-339933?logo=node.js&logoColor=white)
+![Express](https://img.shields.io/badge/express-4.x-000000?logo=express&logoColor=white)
+![Last commit](https://img.shields.io/github/last-commit/harshvardhanepsilon-droid/VRV-DHAN-VAIBHAV-FOUNDATION)
+![Status](https://img.shields.io/badge/status-active--development-blue)
+
 A local loan-management CRM: customer KYC (with photo and ID document uploads), loan creation with automatic EMI/interest calculation (reducing balance or flat rate), repayment schedule tracking, and downloadable PDF loan agreements.
 
 ## Stack
