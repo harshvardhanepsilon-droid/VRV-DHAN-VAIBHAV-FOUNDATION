@@ -34,6 +34,11 @@
         </div>
         <div class="field"><label>Tenure (months) *</label><input type="number" id="f-tenure" min="1" step="1" placeholder="e.g. 12"></div>
         <div class="field"><label>Disbursement Date *</label><input type="date" id="f-date"></div>
+        <div class="field">
+          <label>First EMI Date</label>
+          <input type="date" id="f-first-emi-date">
+          <span class="hint">Borrower's preferred EMI date. Leave blank to default to one month after disbursement.</span>
+        </div>
         <div class="field"><label>Processing Fee (₹)</label><input type="number" id="f-fee" min="0" step="0.01" value="0"></div>
         <div class="field span-2"><label>Purpose of Loan</label><input id="f-purpose" placeholder="e.g. Business working capital"></div>
         <div class="field span-2"><label>Collateral / Security</label><input id="f-collateral" placeholder="e.g. None / Gold jewellery / Property papers"></div>

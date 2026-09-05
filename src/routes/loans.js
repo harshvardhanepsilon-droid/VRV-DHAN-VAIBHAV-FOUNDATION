@@ -24,13 +24,14 @@ function summarize(schedule) {
   };
 }
 
-function toLoanDTO(row, customerName) {
+function toLoanDTO(row, customerName, customerPhone) {
   const schedule = annotateOverdue(row.schedule);
   return {
     id: row.id,
     loanNo: row.loan_no,
     customerId: row.customer_id,
     customerName,
+    customerPhone: customerPhone || '',
     purpose: row.purpose,
     principal: Number(row.principal),
     interestRatePct: Number(row.interest_rate_pct),
@@ -60,14 +61,14 @@ async function persistOverdueFlips(client, loanId, schedule) {
 
 router.get('/', async (req, res) => {
   const { rows } = await pool.query(`
-    SELECT l.*, c.name AS customer_name FROM loans l
+    SELECT l.*, c.name AS customer_name, c.phone AS customer_phone FROM loans l
     JOIN customers c ON c.id = l.customer_id
     ORDER BY l.id DESC
   `);
   const loans = [];
   for (const row of rows) {
     row.schedule = await persistOverdueFlips(pool, row.id, row.schedule);
-    loans.push(toLoanDTO(row, row.customer_name));
+    loans.push(toLoanDTO(row, row.customer_name, row.customer_phone));
   }
   res.json(loans);
 });
@@ -90,7 +91,7 @@ router.get('/:id', async (req, res) => {
 
 router.post('/', async (req, res) => {
   const body = req.body || {};
-  const { rows: custRows } = await pool.query('SELECT id FROM customers WHERE id = $1', [body.customerId]);
+  const { rows: custRows } = await pool.query('SELECT id, name, phone FROM customers WHERE id = $1', [body.customerId]);
   if (!custRows.length) return res.status(400).json({ error: 'Select a valid customer' });
 
   const principal = Number(body.principal);
@@ -98,12 +99,13 @@ router.post('/', async (req, res) => {
   const tenureMonths = Number(body.tenureMonths);
   const interestType = body.interestType === 'flat' ? 'flat' : 'reducing';
   const disbursementDate = body.disbursementDate || toISODate(new Date());
+  const firstEmiDate = body.firstEmiDate || null;
 
   if (!principal || principal <= 0) return res.status(400).json({ error: 'Principal amount must be greater than 0' });
   if (interestRatePct === undefined || interestRatePct < 0 || Number.isNaN(interestRatePct)) return res.status(400).json({ error: 'Enter a valid annual interest rate' });
   if (!tenureMonths || tenureMonths <= 0) return res.status(400).json({ error: 'Tenure (months) must be greater than 0' });
 
-  const { schedule, emiAmount, totalInterest, totalPayable } = buildSchedule({ principal, interestRatePct, tenureMonths, interestType, disbursementDate });
+  const { schedule, emiAmount, totalInterest, totalPayable } = buildSchedule({ principal, interestRatePct, tenureMonths, interestType, disbursementDate, firstEmiDate });
   const loanNo = await nextDocNumber(pool, 'loan', 'VDV/LN', disbursementDate);
 
   const { rows } = await pool.query(
@@ -118,8 +120,7 @@ router.post('/', async (req, res) => {
       JSON.stringify(schedule)
     ]
   );
-  const { rows: custName } = await pool.query('SELECT name FROM customers WHERE id = $1', [body.customerId]);
-  res.status(201).json(toLoanDTO(rows[0], custName[0].name));
+  res.status(201).json(toLoanDTO(rows[0], custRows[0].name, custRows[0].phone));
 });
 
 router.put('/:id', async (req, res) => {
@@ -134,8 +135,8 @@ router.put('/:id', async (req, res) => {
   values.push(req.params.id);
   const { rows } = await pool.query(`UPDATE loans SET ${fields.join(', ')} WHERE id=$${i} RETURNING *`, values);
   if (!rows.length) return res.status(404).json({ error: 'Loan not found' });
-  const { rows: custName } = await pool.query('SELECT name FROM customers WHERE id = $1', [rows[0].customer_id]);
-  res.json(toLoanDTO(rows[0], custName[0] ? custName[0].name : 'Unknown'));
+  const { rows: cust } = await pool.query('SELECT name, phone FROM customers WHERE id = $1', [rows[0].customer_id]);
+  res.json(toLoanDTO(rows[0], cust[0] ? cust[0].name : 'Unknown', cust[0] ? cust[0].phone : ''));
 });
 
 router.delete('/:id', async (req, res) => {
@@ -156,8 +157,8 @@ router.post('/:id/recalculate', async (req, res) => {
     `UPDATE loans SET schedule=$1, emi_amount=$2, total_interest=$3, total_payable=$4, updated_at=now() WHERE id=$5 RETURNING *`,
     [JSON.stringify(schedule), emiAmount, totalInterest, totalPayable, req.params.id]
   );
-  const { rows: custName } = await pool.query('SELECT name FROM customers WHERE id = $1', [updated[0].customer_id]);
-  res.json(toLoanDTO(updated[0], custName[0].name));
+  const { rows: cust } = await pool.query('SELECT name, phone FROM customers WHERE id = $1', [updated[0].customer_id]);
+  res.json(toLoanDTO(updated[0], cust[0].name, cust[0].phone));
 });
 
 router.post('/:id/installments/:seq/pay', async (req, res) => {
@@ -174,8 +175,8 @@ router.post('/:id/installments/:seq/pay', async (req, res) => {
     'UPDATE loans SET schedule=$1, status=$2, updated_at=now() WHERE id=$3 RETURNING *',
     [JSON.stringify(schedule), allPaid ? 'closed' : loan.status, req.params.id]
   );
-  const { rows: custName } = await pool.query('SELECT name FROM customers WHERE id = $1', [updated[0].customer_id]);
-  res.json(toLoanDTO(updated[0], custName[0].name));
+  const { rows: cust } = await pool.query('SELECT name, phone FROM customers WHERE id = $1', [updated[0].customer_id]);
+  res.json(toLoanDTO(updated[0], cust[0].name, cust[0].phone));
 });
 
 router.post('/:id/installments/:seq/unpay', async (req, res) => {
@@ -190,8 +191,8 @@ router.post('/:id/installments/:seq/unpay', async (req, res) => {
     'UPDATE loans SET schedule=$1, status=$2, updated_at=now() WHERE id=$3 RETURNING *',
     [JSON.stringify(schedule), loan.status === 'closed' ? 'active' : loan.status, req.params.id]
   );
-  const { rows: custName } = await pool.query('SELECT name FROM customers WHERE id = $1', [updated[0].customer_id]);
-  res.json(toLoanDTO(updated[0], custName[0].name));
+  const { rows: cust } = await pool.query('SELECT name, phone FROM customers WHERE id = $1', [updated[0].customer_id]);
+  res.json(toLoanDTO(updated[0], cust[0].name, cust[0].phone));
 });
 
 router.get('/:id/agreement.pdf', async (req, res) => {

@@ -39,6 +39,7 @@ function updatePreview() {
       interestType: document.getElementById('f-type').value,
       tenureMonths: document.getElementById('f-tenure').value,
       disbursementDate: document.getElementById('f-date').value,
+      firstEmiDate: document.getElementById('f-first-emi-date').value,
       processingFee: document.getElementById('f-fee').value,
       purpose: document.getElementById('f-purpose').value,
       collateral: document.getElementById('f-collateral').value

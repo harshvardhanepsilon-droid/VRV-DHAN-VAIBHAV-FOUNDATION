@@ -15,7 +15,7 @@
     l.schedule.forEach((inst) => {
       if (inst.status === 'overdue') {
         const days = Math.floor((today - new Date(inst.dueDate)) / (1000 * 60 * 60 * 24));
-        overdue.push({ loanId: l.id, loanNo: l.loanNo, customerName: l.customerName, days, ...inst });
+        overdue.push({ loanId: l.id, loanNo: l.loanNo, customerName: l.customerName, customerPhone: l.customerPhone, days, ...inst });
       }
     });
   });
@@ -26,14 +26,23 @@
     <div class="card danger"><div class="card-label">Total Overdue Amount</div><div class="card-value">${moneyShort(overdue.reduce((s, i) => s + i.emi, 0))}</div></div>
   `;
 
-  document.getElementById('overdue-body').innerHTML = overdue.length ? overdue.map((i) => `
+  const body = document.getElementById('overdue-body');
+  body.innerHTML = overdue.length ? overdue.map((i, idx) => `
     <tr>
       <td>${escapeHtml(i.customerName)}</td>
       <td><a class="link" href="loan-detail.html?id=${i.loanId}">${escapeHtml(i.loanNo)}</a></td>
       <td>${fmtDate(i.dueDate)}</td>
       <td class="num">${i.days}</td>
       <td class="num">${money(i.emi)}</td>
-      <td><a class="btn small" href="loan-detail.html?id=${i.loanId}">Open</a></td>
+      <td class="actions-row">
+        <a class="btn small" href="loan-detail.html?id=${i.loanId}">Open</a>
+        <button class="btn small" data-remind="${idx}" title="Send WhatsApp reminder">WhatsApp</button>
+      </td>
     </tr>
   `).join('') : '<tr class="empty-row"><td colspan="6">No overdue EMIs. Everything is on track.</td></tr>';
+
+  body.querySelectorAll('[data-remind]').forEach((btn) => btn.addEventListener('click', () => {
+    const i = overdue[Number(btn.dataset.remind)];
+    sendWhatsAppReminder({ phone: i.customerPhone, customerName: i.customerName, loanNo: i.loanNo, emi: i.emi, dueDate: i.dueDate });
+  }));
 })();

@@ -22,3 +22,13 @@ function escapeHtml(str) {
 function qs(param) {
   return new URLSearchParams(window.location.search).get(param);
 }
+
+// Opens a WhatsApp chat pre-filled with an EMI reminder — uses the wa.me
+// click-to-chat link, so it needs no WhatsApp Business API setup.
+function sendWhatsAppReminder({ phone, customerName, loanNo, emi, dueDate, companyName }) {
+  const digits = String(phone || '').replace(/\D/g, '');
+  if (!digits) { toast('No phone number on file for this customer'); return; }
+  const withCountryCode = digits.length === 10 ? '91' + digits : digits;
+  const message = `Dear ${customerName}, this is a reminder that your EMI of ${money(emi)} for loan ${loanNo} was due on ${fmtDate(dueDate)}. Kindly make the payment at the earliest. Thank you, ${companyName || 'VRV Dhan Vaibhav Foundation'}.`;
+  window.open(`https://wa.me/${withCountryCode}?text=${encodeURIComponent(message)}`, '_blank');
+}

@@ -40,9 +40,10 @@ function renderSchedule() {
       <td class="num">${money(inst.interest)}</td>
       <td class="num">${money(inst.balance)}</td>
       <td><span class="badge ${inst.status}">${inst.status}</span>${inst.status === 'paid' ? `<div class="hint">on ${fmtDate(inst.paidDate)}</div>` : ''}</td>
-      <td>${inst.status === 'paid'
+      <td class="actions-row">${inst.status === 'paid'
         ? `<button class="btn small" data-unpay="${inst.seq}">Undo</button>`
-        : `<button class="btn small primary" data-pay="${inst.seq}">Mark Paid</button>`}</td>
+        : `<button class="btn small primary" data-pay="${inst.seq}">Mark Paid</button>
+           <button class="btn small" data-remind="${inst.seq}" title="Send WhatsApp reminder">WhatsApp</button>`}</td>
     </tr>
   `).join('');
 
@@ -54,6 +55,16 @@ function renderSchedule() {
       toast('Payment undone');
       await loadLoan();
     } catch (e) { toast('Failed: ' + e.message); }
+  }));
+  body.querySelectorAll('[data-remind]').forEach((btn) => btn.addEventListener('click', () => {
+    const inst = loan.schedule.find((s) => s.seq === Number(btn.dataset.remind));
+    sendWhatsAppReminder({
+      phone: loan.customer ? loan.customer.phone : '',
+      customerName: loan.customer ? loan.customer.name : 'Customer',
+      loanNo: loan.loanNo,
+      emi: inst.emi,
+      dueDate: inst.dueDate
+    });
   }));
 }
 

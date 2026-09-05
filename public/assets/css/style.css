@@ -89,7 +89,14 @@ body {
   box-shadow: 0 6px 16px rgba(201,161,43,0.35);
 }
 
-.sidebar-footer { margin-top: auto; padding: 14px 12px 4px; font-size: 11px; color: rgba(169,201,188,0.7); }
+.sidebar-kyc { margin-top: 14px; padding-top: 14px; border-top: 1px solid rgba(255,255,255,0.1); }
+.sidebar-kyc-title { padding: 0 14px 6px; font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: rgba(169,201,188,0.7); }
+.sidebar-kyc-list { display: flex; flex-direction: column; max-height: 260px; overflow-y: auto; }
+.sidebar-kyc-item { display: block; padding: 7px 14px; font-size: 13px; color: var(--text-sidebar); text-decoration: none; border-radius: 8px; margin: 0 4px 1px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; transition: background .15s ease, color .15s ease; }
+.sidebar-kyc-item:hover { background: rgba(255,255,255,0.08); color: #fff; }
+.sidebar-kyc-item.active { background: rgba(201,161,43,0.16); color: var(--accent-2); font-weight: 600; }
+.sidebar-kyc-more { display: block; padding: 8px 14px 4px; font-size: 12px; font-weight: 600; color: var(--accent-2); text-decoration: none; }
+.sidebar-kyc-more:hover { text-decoration: underline; }
 
 .main { flex: 1; margin-left: 240px; padding: 30px 36px; max-width: 1280px; }
 .main h1 { margin: 0 0 4px; font-size: 23px; font-weight: 700; letter-spacing: -.01em; }

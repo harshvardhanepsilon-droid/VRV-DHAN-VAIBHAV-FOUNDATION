@@ -27,9 +27,13 @@ function reducingBalanceEmi(principal, annualRatePct, tenureMonths) {
 }
 
 function buildSchedule(loan) {
-  const { principal, interestRatePct, tenureMonths, interestType, disbursementDate } = loan;
+  const { principal, interestRatePct, tenureMonths, interestType, disbursementDate, firstEmiDate } = loan;
   const schedule = [];
   const startDate = new Date(disbursementDate);
+  // The borrower can pick a preferred first EMI date at loan creation (e.g. the
+  // 5th of the month); every later installment lands on that same day-of-month.
+  // Falls back to exactly one month after disbursement when not specified.
+  const anchorDate = firstEmiDate ? new Date(firstEmiDate) : addMonths(startDate, 1);
 
   if (interestType === 'flat') {
     const totalInterest = round2(principal * (interestRatePct / 100) * (tenureMonths / 12));
@@ -44,7 +48,7 @@ function buildSchedule(loan) {
       balance = round2(balance - principalComponent);
       schedule.push({
         seq: i,
-        dueDate: toISODate(addMonths(startDate, i)),
+        dueDate: toISODate(addMonths(anchorDate, i - 1)),
         emi: round2(principalComponent + interestComponent),
         principal: principalComponent,
         interest: interestComponent,
@@ -76,7 +80,7 @@ function buildSchedule(loan) {
     totalInterest = round2(totalInterest + interestComponent);
     schedule.push({
       seq: i,
-      dueDate: toISODate(addMonths(startDate, i)),
+      dueDate: toISODate(addMonths(anchorDate, i - 1)),
       emi,
       principal: principalComponent,
       interest: interestComponent,
